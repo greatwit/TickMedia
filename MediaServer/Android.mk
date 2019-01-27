@@ -13,7 +13,7 @@ APP_ALLOW_MISSING_DEPS=true
 
 LOCAL_CFLAGS := -D__ANDROID__ -DHAVE_CONFIG_H -D__STDC_CONSTANT_MACROS -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
 LOCAL_CPPFLAGS 	+= -std=c++11
-LOCAL_MODULE := netplayer
+LOCAL_MODULE := netmedia
 
 LOCAL_C_INCLUDES += \
 				   $(LOCAL_PROJECT_ROOT)/net \
@@ -40,6 +40,7 @@ LOCAL_SRC_FILES := net/buffer.c \
 				TaskBase.cpp \
 				TaskFileSend.cpp \
 				TaskFileRecv.cpp \
+				TaskVideoSend.cpp \
 				TaskVideoRecv.cpp \
 				TcpClient.cpp \
 				TcpServer.cpp \

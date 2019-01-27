@@ -36,48 +36,48 @@ static int FindStartCode3 (unsigned char *Buf) {
 //为NALU_t结构体分配内存空间
 NALU_t *AllocNALU(int buffersize)
 {
-  NALU_t *n;
+	  NALU_t *n;
 
-  if ((n = (NALU_t*)calloc (1, sizeof (NALU_t))) == NULL)
-  {
-	  printf("AllocNALU: n");
-	  exit(0);
-  }
+	  if ((n = (NALU_t*)calloc (1, sizeof (NALU_t))) == NULL)
+	  {
+		  printf("AllocNALU: n");
+		  exit(0);
+	  }
 
-  n->max_size=buffersize;
+	  n->max_size=buffersize;
 
-  if ((n->buf = (unsigned char*)calloc (buffersize, sizeof (char))) == NULL)
-  {
-    free (n);
-    printf ("AllocNALU: n->buf");
-	exit(0);
-  }
+	  if ((n->buf = (unsigned char*)calloc (buffersize, sizeof (char))) == NULL)
+	  {
+		  free (n);
+		  printf ("AllocNALU: n->buf");
+		  exit(0);
+	  }
 
-  return n;
+	  return n;
 }
 
 //释放
 void FreeNALU(NALU_t *n)
 {
-  if (n)
-  {
-    if (n->buf)
-    {
-      free(n->buf);
-      n->buf=NULL;
-    }
-    free (n);
-  }
+	  if (n)
+	  {
+			if (n->buf)
+			{
+				free(n->buf);
+				n->buf=NULL;
+			}
+			free (n);
+	  }
 }
 
 FILE* OpenBitstreamFile (const char *filename) {
-  FILE* file = NULL;
-  if (NULL == (file=fopen(filename, "rb")))
-  {
-	  printf("open file error\n");
-	  exit(0);
-  }
-  return file;
+	  FILE* file = NULL;
+	  if (NULL == (file=fopen(filename, "rb")))
+	  {
+		  printf("open file error\n");
+		  exit(0);
+	  }
+	  return file;
 }
 
 void  CloseBitstreamFile(FILE*file){
@@ -120,9 +120,9 @@ int GetAnnexbNALU (FILE *file, NALU_t *nalu)
 		   }
 		   else
 		   {
-			//如果是0x00000001,得到开始前缀为4个字节
-			 pos = 4;
-			 nalu->startcodeprefix_len = 4;
+			   //如果是0x00000001,得到开始前缀为4个字节
+			   pos = 4;
+			   nalu->startcodeprefix_len = 4;
 		   }
 	   }
 	   else
@@ -153,7 +153,7 @@ int GetAnnexbNALU (FILE *file, NALU_t *nalu)
 			Buf[pos++] = fgetc (file);//读一个字节到BUF中
 			info3 = FindStartCode3(&Buf[pos-4]);//判断是否为0x00000001
 			if(info3 != 1)
-			  info2 = FindStartCode2(&Buf[pos-3]);//判断是否为0x000001
+				info2 = FindStartCode2(&Buf[pos-3]);//判断是否为0x000001
 			StartCodeFound = (info2 == 1 || info3 == 1);
 	  }
 
@@ -163,8 +163,8 @@ int GetAnnexbNALU (FILE *file, NALU_t *nalu)
 
 	  if (0 != fseek (file, rewind, SEEK_CUR))//把文件指针指向前一个NALU的末尾
 	  {
-		  free(Buf);
-		  printf("GetAnnexbNALU: Cannot fseek in the bit stream file");
+		  	  free(Buf);
+		  	  printf("GetAnnexbNALU: Cannot fseek in the bit stream file");
 	  }
 
 	  // Here the Start code, the complete NALU, and the next start code is in the Buf.

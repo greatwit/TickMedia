@@ -3,7 +3,7 @@ CXXFLAGS += -std=c++11
 CC 	= gcc
 CPP = g++
 CFLAGS 		= -Wall -DHAVE_CONFIG_H -g -fPIC #-DHAVE_SYS_TIME_H
-CXXFLAGS 	+= -Dlinux -DHAV_FFMPEG -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
+CXXFLAGS 	+= -Dlinux -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
 
 THREAD_PATH  = ../common/gthread
 NAREDEC_PATH = ../common/NalBareflow
@@ -14,7 +14,7 @@ CFLAGS   += -I./ -I./net -I../common
 CXXFLAGS += $(COMPLIE_INCL)
 LDFLAGS  += $(COMPLIE_LIB) -lpthread
 
-TARGET = EventServer EventClient
+TARGET = ServerEvent ClientEvent
 
 #--------------------------------------------------------------------
 
@@ -28,11 +28,11 @@ OBJECTS = net/buffer.o net/epoll.o net/epoll_sub.o net/event.o net/evbuffer.o ne
 EventServer=$(OBJECTS) EventServer.o TcpServer.o
 EventClient=$(OBJECTS) EventClient.o TcpClient.o
  
-EventServer:$(EventServer) 
-	 $(CPP) -o EventServer $(EventServer) $(LDFLAGS)
+ServerEvent:$(EventServer) 
+	 $(CPP) -o ServerEvent $(EventServer) $(LDFLAGS)
 
-EventClient:$(EventClient) 
-	 $(CPP) -o EventClient $(EventClient) $(LDFLAGS)
+ClientEvent:$(EventClient) 
+	 $(CPP) -o ClientEvent $(EventClient) $(LDFLAGS)
 
 .PHONY:clean
 

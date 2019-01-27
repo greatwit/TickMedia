@@ -1,53 +1,60 @@
 
-
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "TaskVideoSend.hpp"
+#include "BufferCache.hpp"
 #include "EventCall.hpp"
 
 #include "event.h"
-#include "net_protocol.h"
 #include "basedef.h"
+#include "protocol.h"
+#include "net_protocol.h"
 
-#ifdef 	__ANDROID__
-#define	FILE_PATH	"/sdcard/camera_640x480.h264"
-#else
-#define	FILE_PATH	"h264/camera_640x480.h264"
-#endif
+#undef   _FILE_OFFSET_BITS
+#define  _FILE_OFFSET_BITS	64
+
+const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
+#define 	SEG_FRAME_COUNT 10
+
 
 	TaskVideoSend::TaskVideoSend( Session*sess, Sid_t& sid, char*filename )
-				:mPackHeadLen(sizeof(PACK_HEAD))
+				:mPackHeadLen(sizeof(NET_CMD))
 				,TaskBase(sid)
 				,mSess(sess)
 				,mRecvDataLen(0)
 				,mRecvHeadLen(0)
-				,mTotalLen(0)
-				,mSeqid(0)
+				,mFileLen(0)
+				,mHasReadLen(0)
+				,mFrameCount(0)
 				,mbSendingData(true)
 	{
-	    struct stat buf;
-	    stat(filename, &buf);
-
-		mwFile = OpenBitstreamFile( filename ); //camera_640x480.h264 //camera_1280x720.h264
-		if(mwFile==NULL) {
-			GLOGE("open file:%s failed.", filename);
-		}
-
 		mRecvBuffer.reset();
 		mSendBuffer.reset();
 		mSendBuffer.createMem(720*1280);
+
+		mpFile = OpenBitstreamFile( filename );
+	    struct stat buf;
+	    stat(filename, &buf);
+	    mFileLen = buf.st_size;
+//		fseek( mpFile, 0, SEEK_END );
+//		mFileLen = ftell( mpFile );
+//		fseek( mpFile, 0, SEEK_END );
+//		rewind( mpFile );
 
 		char *lpRet   = mSendBuffer.cmmd;
 		LPNET_CMD cmd = (LPNET_CMD)lpRet;
 		cmd->dwFlag   = NET_FLAG;
 		cmd->dwCmd    = MODULE_MSG_LOGINRET;
 		cmd->dwIndex  = 0;
-		cmd->dwLength = 8;//sizeof(LOGIN_RET);
+		cmd->dwLength = sizeof(LOGIN_RET);
+
 		LOGIN_RET loginRet 	= {0};
 		FILE_INFO info 		= {0};
-		info.tmEnd 			= buf.st_size;
+		info.tmEnd 			= mFileLen;
 		loginRet.nLength 	= sizeof(FILE_INFO);
 		loginRet.lRet 		= ERR_NOERROR;
 		memcpy(loginRet.lpData, &info, sizeof(FILE_INFO));
@@ -57,16 +64,21 @@
 		mSendBuffer.bProcCmmd 	= true;
 		int ret = tcpSendData();
 
-		GLOGD("TaskVideoSend filename:%s send ret:%d \n", filename, ret);
+		GLOGE("file %s len:%u\n", filename, mFileLen);//get_filesize(filename)
 	}
 
+
 	TaskVideoSend::~TaskVideoSend() {
-		if(mwFile != NULL) {
-			CloseBitstreamFile(mwFile);
-			mwFile = NULL;
+
+		if(mpFile != NULL) {
+			CloseBitstreamFile(mpFile);
+			mpFile = NULL;
 		}
+
+		mMsgQueue.clearQueue();
 		mSendBuffer.releaseMem();
 	}
+
 
 	int TaskVideoSend::StartTask() {
 		return 0;
@@ -76,41 +88,96 @@
 		return 0;
 	}
 
-	int TaskVideoSend::sendEx(char*data,int len) {
+	int TaskVideoSend::sendVariedCmd(int iVal) {
+		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
+		pCmd->dwFlag 	= NET_FLAG;
+		pCmd->dwCmd 	= iVal;
+		pCmd->dwIndex 	= 0;
+		pCmd->dwLength 	= 0;
+		mSendBuffer.totalLen = sizeof(NET_CMD);
+		mSendBuffer.bProcCmmd = true;
+		int ret = tcpSendData();
+		//GLOGE("-------------------sendVariedCmd:%d", iVal);
+		return ret;
+	}
+
+	//Here further processing is needed.
+	int TaskVideoSend::writeBuffer() {
+		int ret = 0;
+		if(feof(mpFile)) {
+			//mRunning = false;
+			GLOGW("read file done.");
+			return 0;
+		}
+
+		if(mSendBuffer.totalLen==0) //take new data and send,totalLen is cmd len first
+		{
+				int size = GetAnnexbNALU(mpFile, mSendBuffer.data);//每执行一次，文件的指针指向本次找到的NALU的末尾，下一个位置即为下个NALU的起始码0x000001
+				GLOGE("GetAnnexbNALU size:%d\n", size);
+
+				if(size>0) {
+					mSendBuffer.totalLen 	= sizeof(NET_CMD) + sizeof(FILE_GET);
+					mSendBuffer.bProcCmmd 	= true;
+					LPNET_CMD	 cmd 		= (LPNET_CMD)mSendBuffer.cmmd;
+					LPFILE_GET frame 		= (LPFILE_GET)(cmd->lpData);
+					cmd->dwFlag 			= NET_FLAG;
+					cmd->dwCmd 				= MODULE_MSG_VIDEO;
+					cmd->dwIndex 			= 0;
+					frame->dwPos 			= ftell(mpFile);
+
+					mSendBuffer.dataLen  	= size;
+					cmd->dwLength 			= mSendBuffer.dataLen+sizeof(FILE_GET); 	//cmd incidental length
+					frame->nLength  		= mSendBuffer.dataLen;
+				}
+				else{
+					ret = pushSendCmd(MODULE_MSG_DATAEND);
+					return OWN_SOCK_EXIT;
+			}
+		}
+		ret = tcpSendData();
+
+		return ret;
+	}
+
+	int TaskVideoSend::setHeartCount() {
+//			mMsgQueue.push(MODULE_MSG_PING);
+//
+//			if( !mbSendingData)
+//				EventCall::addEvent( mSess, EV_WRITE, -1 );
+//
+//			//GLOGE("setHeart----------------\n");
+//
+//		return mMsgQueue.getSize();
+		return 0;
+	}
+
+	int TaskVideoSend::sendEx(char*data, int len) {
 		int leftLen = len, iRet = 0;
+
 		struct timeval timeout;
 		int sockId = mSid.mKey;
 		do {
+
 			iRet = send(sockId, data+len-leftLen, leftLen, 0);
+
 			if(iRet<0) {
 				//GLOGE("send data errno:%d ret:%d.", errno, iRet);
 				switch(errno) {
-					case EAGAIN: usleep(2000); continue;
-					case EPIPE: break;
+				case EAGAIN:
+					usleep(2000);
+					continue;
+
+				case EPIPE:
+					break;
 				}
 				return iRet;
 			}
+
 			leftLen -= iRet;
 
 		}while(leftLen>0);
 
 		return len - leftLen;
-	}
-
-	void TaskVideoSend::packetHead(int fid, short pid, int len, unsigned char type, LPPACK_HEAD lpPack) {
-		memset(lpPack, 0, sizeof(PACK_HEAD));
-		lpPack->type 		= type;
-		lpPack->fid 		= htonl(fid);
-		lpPack->pid			= htons(pid);
-		lpPack->len 		= htonl(len);
-	}
-
-	int TaskVideoSend::tpcSendMsg(unsigned char msg) {
-		int iRet = 0;
-		char sendData[1500] = {0};
-		packetHead(0, 0, mPackHeadLen, msg, (LPPACK_HEAD)sendData);
-		iRet = sendEx(sendData, mPackHeadLen);
-		return iRet;
 	}
 
 	int TaskVideoSend::tcpSendData()
@@ -124,7 +191,7 @@
 				GLOGE("tcpSendData cmd errno:%d ret:%d.", errno, ret);
 
 			if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
-				mSendBuffer.setToVideo();
+					mSendBuffer.setToVideo();
 			}
 		}
 		else//data
@@ -141,7 +208,6 @@
 		}
 		return ret;
 	}
-
 
 	int TaskVideoSend::pushSendCmd(int iVal, int index) {
 		int ret = 0;
@@ -160,8 +226,14 @@
 				mSendBuffer.bProcCmmd = true;
 				ret = tcpSendData();
 				break;
+
+			case MODULE_MSG_PING:
+				if(mMsgQueue.getSize() < 10)
+					mMsgQueue.push(MODULE_MSG_PING);
+				break;
 		}
 		GLOGE("pushSendCmd value:%d ret:%d.\n", iVal, ret);
+
 		return ret;
 	}
 
@@ -231,44 +303,11 @@
 			}
 		}
 		else if(ret == 0) {
+
 		}
 
 		return ret;
 	}
 
-	int TaskVideoSend::writeBuffer() {
-		int ret = 0;
-		if(feof(mwFile)) {
-			//mRunning = false;
-			GLOGW("read file done.");
-			return 0;
-		}
 
-		if(mSendBuffer.totalLen==0) //take new data and send,totalLen is cmd len first
-		{
-				int size = GetAnnexbNALU(mwFile, mSendBuffer.data);//每执行一次，文件的指针指向本次找到的NALU的末尾，下一个位置即为下个NALU的起始码0x000001
-				GLOGE("GetAnnexbNALU size:%d", mSendBuffer.data->len);
 
-				if(size>0) {
-					mSendBuffer.totalLen 	= sizeof(NET_CMD) + sizeof(FILE_GET);
-					mSendBuffer.bProcCmmd 	= true;
-					LPNET_CMD	 cmd 		= (LPNET_CMD)mSendBuffer.cmmd;
-					LPFILE_GET frame 		= (LPFILE_GET)(cmd->lpData);
-					cmd->dwFlag 			= NET_FLAG;
-					cmd->dwCmd 				= MODULE_MSG_VIDEO;
-					cmd->dwIndex 			= 0;
-					frame->dwPos 			= ftell(mwFile);
-
-					mSendBuffer.dataLen  	= size;
-					cmd->dwLength 			= mSendBuffer.dataLen+sizeof(FILE_GET); 	//cmd incidental length
-					frame->nLength  		= mSendBuffer.dataLen;
-				}
-				else{
-					ret = pushSendCmd(MODULE_MSG_DATAEND);
-					return OWN_SOCK_EXIT;
-			}
-		}
-		ret = tcpSendData();
-
-		return ret;
-	}

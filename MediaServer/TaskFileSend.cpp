@@ -119,8 +119,8 @@ const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
 				if(!mbSendingData)
 					return 0;
 
-				unsigned int iLeftLen = mFileLen - mHasReadLen;
-				unsigned int iBuffLen = (iLeftLen > BUFFER_LEN)?BUFFER_LEN:iLeftLen;
+				unsigned int iLeftLen 	= mFileLen - mHasReadLen;
+				unsigned int iBuffLen 	= (iLeftLen > BUFFER_LEN)?BUFFER_LEN:iLeftLen;
 				mSendBuffer.totalLen 	= sizeof(NET_CMD) + sizeof(FILE_GET);
 				mSendBuffer.bProcCmmd 	= true;
 				LPNET_CMD	 cmd 		= (LPNET_CMD)mSendBuffer.cmmd;

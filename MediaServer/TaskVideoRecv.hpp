@@ -10,7 +10,6 @@
 class BufferCache;
 
 class TaskVideoRecv :public TaskBase {
-
 	public:
 		TaskVideoRecv( Session*sess, Sid_t &sid );
 		TaskVideoRecv( Session*sess, Sid_t &sid, char*filepath );
@@ -23,18 +22,20 @@ class TaskVideoRecv :public TaskBase {
 	private:
 		int tcpSendData();
 		int sendEx(void*data, int len);
+		int SendCmd(int dwCmd, int dwIndex, void* lpData, int nLength);
+
 		int recvPackData();
 
 		struct tagCmdBuffer 		mSendBuffer;
 		struct tagFileProcBuffer 	mRecvBuffer;
-		FILE			*mwFile;
 		Session			*mSess;
+		FILE			*mwFile;
 
-		int mPackHeadLen;
+		int 	mPackHeadLen;
 
-		int  mRecvDataLen;
-		int  mRecvHeadLen;
-		int  mTotalLen;
+		int  	mRecvDataLen;
+		int  	mRecvHeadLen;
+		int  	mTotalLen;
 };
 
 

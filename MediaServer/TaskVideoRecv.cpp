@@ -5,18 +5,22 @@
 
 #include "TaskVideoRecv.hpp"
 #include "BufferCache.hpp"
+#include "EventCall.hpp"
 
+#include "event.h"
 #include "h264.h"
 #include "basedef.h"
 
 #ifdef 	__ANDROID__
 #define	FILE_PATH	"/sdcard/w.h264"
 #else
-#define	FILE_PATH	"w.h264"
+#define	FILE_PATH	"recv.mp4"
 #endif
 
+const int	 BUFFER_LEN  = 1024*1024+1500;
+
 	TaskVideoRecv::TaskVideoRecv( Session*sess, Sid_t &sid )
-				:mPackHeadLen(sizeof(PACK_HEAD))
+				:mPackHeadLen(sizeof(NET_CMD))
 				,TaskBase(sid)
 				,mSess(sess)
 				,mRecvDataLen(0)
@@ -25,14 +29,12 @@
 	{
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
-		mRecvBuffer.createMem(720*1280);
+		mRecvBuffer.createMem(BUFFER_LEN);
 
 		mwFile = fopen(FILE_PATH, "w");
 
-		char lpData[2048];
-		int nLength = sprintf(lpData, "<play path=\"%s\"/>", "/sdcard/camera.h264");
-
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
+		int nLength = sprintf(pCmd->lpData, "<play path=\"%s\"/>", "/h264/tmp.mp4");
 		pCmd->dwFlag 	= NET_FLAG;
 		pCmd->dwCmd 	= MODULE_MSG_LOGIN;
 		pCmd->dwIndex 	= 0;
@@ -42,8 +44,9 @@
 		int ret = tcpSendData();
 	}
 
+
 	TaskVideoRecv::TaskVideoRecv( Session*sess, Sid_t &sid, char*filepath )
-				:mPackHeadLen(sizeof(PACK_HEAD))
+				:mPackHeadLen(sizeof(NET_CMD))
 				,TaskBase(sid)
 				,mSess(sess)
 				,mRecvDataLen(0)
@@ -52,36 +55,31 @@
 	{
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
-		mRecvBuffer.createMem(720*1280);
+		mRecvBuffer.createMem(BUFFER_LEN);
 
 		mwFile = fopen(FILE_PATH, "w");
 
 
-		LPNET_CMD cmd = (LPNET_CMD)mSendBuffer.cmmd;
-		int nLength = sprintf(cmd->lpData, "<play path=\"%s\"/>", filepath);
-		cmd->dwFlag   = NET_FLAG;
-		cmd->dwCmd    = MODULE_MSG_LOGINRET;
-		cmd->dwIndex  = 0;
-		cmd->dwLength = nLength;
-		mSendBuffer.totalLen  = sizeof(NET_CMD) + nLength;
-		mSendBuffer.bProcCmmd = true;
-
+		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
+		int nLength = sprintf(pCmd->lpData, "<play path=\"%s\"/>", filepath);
+		pCmd->dwFlag 	= NET_FLAG;
+		pCmd->dwCmd 	= MODULE_MSG_LOGIN;
+		pCmd->dwIndex 	= 0;
+		pCmd->dwLength 	= nLength;
+		mSendBuffer.totalLen 	= sizeof(NET_CMD)+nLength;
+		mSendBuffer.bProcCmmd 	= true;
 		int ret = tcpSendData();
-		GLOGE("tcpSendData data ret:%d.", ret);
 	}
+
 
 	TaskVideoRecv::~TaskVideoRecv() {
 
+		GLOGW("file seek:%ld\n", ftell(mwFile));
+
 		if(mwFile != NULL)
 			fclose(mwFile);
-	}
 
-	int TaskVideoRecv::StartTask() {
-		return 0;
-	}
-
-	int TaskVideoRecv::StopTask() {
-		return 0;
+		mRecvBuffer.releaseMem();
 	}
 
 	int TaskVideoRecv::sendEx(void*data, int len) {
@@ -115,20 +113,57 @@
 	int TaskVideoRecv::tcpSendData()
 	{
 		int ret = 0;
+		int &hasProcLen = mSendBuffer.hasProcLen;
 		if(mSendBuffer.bProcCmmd) {
-			ret = sendEx(mSendBuffer.cmmd+mSendBuffer.hasProcLen, mSendBuffer.totalLen-mSendBuffer.hasProcLen);
+			ret = sendEx(mSendBuffer.cmmd+hasProcLen, mSendBuffer.totalLen-hasProcLen);
 			if(ret>0)
-				mSendBuffer.hasProcLen += ret;
+				hasProcLen += ret;
 			else
 				GLOGE("tcpSendData cmd errno:%d ret:%d.", errno, ret);
 
-			GLOGE("tcpSendData ret:%d.", ret);
-
-			if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
-					mSendBuffer.reset();
+			if(hasProcLen == mSendBuffer.totalLen) {
+				mSendBuffer.reset();
 			}
 		}
+
 		return ret;
+	}
+
+	int TaskVideoRecv::SendCmd(int dwCmd, int dwIndex, void* lpData, int nLength)
+	{
+		int iRet = -1;
+		NET_CMD nc;
+		memset(&nc,0,sizeof(nc));
+		nc.dwFlag = NET_FLAG;
+		nc.dwCmd = dwCmd;
+		nc.dwIndex = dwIndex;
+		nc.dwLength = nLength;
+		if ((iRet = sendEx(&nc, sizeof(nc)))<0)
+		{
+			GLOGE("send cmd err len = %d", nLength);
+			return iRet;
+		}
+
+		GLOGW("send head len:%d \n", sizeof(nc));
+		if (nLength == 0)
+		{
+			return 0;
+		}
+		if ((iRet = sendEx(lpData, nLength))<0)
+		{
+			GLOGE("send lpdata err len = %d",nLength);
+			return iRet;
+		}
+		GLOGW("send data len:%d lpData:%s\n", nLength, lpData);
+		return iRet;
+	}
+
+	int TaskVideoRecv::StartTask() {
+		return 0;
+	}
+
+	int TaskVideoRecv::StopTask() {
+		return 0;
 	}
 
 	int TaskVideoRecv::readBuffer() {
@@ -136,7 +171,7 @@
 		int &hasRecvLen = mRecvBuffer.hasProcLen;
 		if(mRecvBuffer.bProcCmmd) {
 			ret = recv(mSid.mKey, mRecvBuffer.data+hasRecvLen, mPackHeadLen-hasRecvLen, 0);
-			GLOGE("readBuffer ret:%d\n", ret);
+
 			if(ret>0) {
 				hasRecvLen+=ret;
 				if(hasRecvLen==mPackHeadLen) {
@@ -145,22 +180,24 @@
 					mRecvBuffer.bProcCmmd = false;
 					hasRecvLen = 0;
 
-					GLOGE("playback flag:%08x ?totalLen:%d ret:%d\n", head->dwFlag, mRecvBuffer.totalLen, ret);
+					GLOGE("playback flag:%08x totalLen:%d ret:%d\n", head->dwFlag, mRecvBuffer.totalLen, ret);
 					ret = recvPackData();
 				}
 			}
 		}//
-		else {
+		else{
 			ret = recvPackData();
 		}
 
+		//GLOGE("--------1-----------recvPackData ret:%d\n",ret);
+		//EventCall::addEvent( mSess, EV_READ, -1 );
 		return ret;
 	}
 
 	int TaskVideoRecv::recvPackData() {
 		int &hasRecvLen = mRecvBuffer.hasProcLen;
 		int ret = recv(mSid.mKey, mRecvBuffer.data+mPackHeadLen+hasRecvLen, mRecvBuffer.totalLen-hasRecvLen, 0);
-		GLOGE("-------------------recvPackData ret:%d\n",ret);
+		//GLOGE("-------------------recvPackData ret:%d\n",ret);
 		if(ret>0) {
 			hasRecvLen += ret;
 			if(hasRecvLen==mRecvBuffer.totalLen) {
@@ -191,7 +228,7 @@
 
 						char szCmd[100];
 						int len = sprintf(szCmd, "<control name=\"start\" tmstart=\"%d\" tmend=\"%d\" />", 0, mTotalLen);
-						//SendCmd(MODULE_MSG_CONTROL_PLAY, 0, szCmd,len + 1);
+						SendCmd(MODULE_MSG_CONTROL_PLAY, 0, szCmd,len + 1);
 						break;
 				}
 
@@ -208,7 +245,7 @@
 	}
 
 	int TaskVideoRecv::writeBuffer() {
-		GLOGE("TaskVideoRecv write event\n");
+
 		return 0;
 	}
 

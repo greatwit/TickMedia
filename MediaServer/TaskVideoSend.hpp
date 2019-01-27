@@ -1,25 +1,25 @@
 #ifndef __TaskVideoSend_hpp__
 #define __TaskVideoSend_hpp__
 
-#include <stdio.h>
-#include <unistd.h>
 
 #include "h264.h"
+
 #include "TaskBase.hpp"
+#include "GQueue.h"
+
 
 class BufferCache;
 
 class TaskVideoSend :public TaskBase {
+
 	public:
 		TaskVideoSend( Session*sess, Sid_t& sid, char*filename );
 		virtual ~TaskVideoSend();
 		virtual int StartTask();
 		virtual int StopTask();
+		virtual int setHeartCount();
 		virtual int readBuffer();
 		virtual int writeBuffer();
-
-		void packetHead(int fid, short pid, int len, unsigned char type, LPPACK_HEAD lpPack);
-		int  tpcSendMsg(unsigned char msg);
 
 	private:
 		int tcpSendData();
@@ -27,20 +27,25 @@ class TaskVideoSend :public TaskBase {
 		int recvPackData();
 		int pushSendCmd(int iVal, int index=0);
 
+		int sendVariedCmd(int iVal);
+
 	private:
 		struct tagRecvBuffer 		mRecvBuffer;
 		struct tagNALSendBuffer 	mSendBuffer;
-
-		FILE						*mwFile;
+		BufferCache 		 		*mInBuffer;
+		FILE						*mpFile;
 		Session						*mSess;
-		int							mSeqid;
-		bool						mbSendingData;
+		GQueue<int>					mMsgQueue;
 
-		int  mPackHeadLen;
-		int  mRecvDataLen;
-		int  mRecvHeadLen;
-		int  mTotalLen;
+		int     		mFrameCount;
+		unsigned int	mFileLen;
 
+		int 			mPackHeadLen;
+
+		int  			mRecvDataLen;
+		int  			mRecvHeadLen;
+		unsigned int    mHasReadLen;
+		bool			mbSendingData;
 };
 
 
