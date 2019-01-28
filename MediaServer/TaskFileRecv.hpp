@@ -14,8 +14,6 @@ class TaskFileRecv :public TaskBase {
 		TaskFileRecv( Session*sess, Sid_t &sid );
 		TaskFileRecv( Session*sess, Sid_t &sid, char*filepath );
 		virtual ~TaskFileRecv();
-		virtual int StartTask();
-		virtual int StopTask();
 		virtual int readBuffer();
 		virtual int writeBuffer();
 

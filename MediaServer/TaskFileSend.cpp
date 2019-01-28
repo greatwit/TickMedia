@@ -80,15 +80,6 @@ const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
 		mSendBuffer.releaseMem();
 	}
 
-
-	int TaskFileSend::StartTask() {
-		return 0;
-	}
-
-	int TaskFileSend::StopTask() {
-		return 0;
-	}
-
 	int TaskFileSend::sendVariedCmd(int iVal) {
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
 		pCmd->dwFlag 	= NET_FLAG;

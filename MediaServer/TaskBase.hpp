@@ -27,8 +27,6 @@ public:
 	TaskBase( Sid_t &sid, char*filename);
 	TaskBase(  Session*sess, Sid_t&sid, char*filename);
 	virtual ~TaskBase();
-	virtual int StartTask();
-	virtual int StopTask();
 	virtual int setHeartCount();
 	virtual int readBuffer();
 	virtual int writeBuffer();

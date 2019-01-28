@@ -27,16 +27,7 @@
 
 	}
 
-
-	int TaskBase::StartTask() {
-		return 0;
-	}
-
 	int TaskBase::setHeartCount() {
-		return 0;
-	}
-
-	int TaskBase::StopTask() {
 		return 0;
 	}
 

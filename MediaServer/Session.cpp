@@ -17,6 +17,10 @@
 #include "TaskFileRecv.hpp"
 #include "Session.hpp"
 
+#ifdef __ANDROID__
+#include "VideoDecoder.hpp"
+#endif
+
 
 #include "config.h"
 #include "event.h"
@@ -190,6 +194,40 @@ Session :: Session( Sid_t sid, short type, char*filepath)
 		case VIDEO_RECV_MSG:
 			if(!mTaskBase)
 				mTaskBase = new TaskVideoRecv( this, mSid, filepath );
+			break;
+
+		case FILE_RECV_MSG:
+				mTaskBase = new TaskFileRecv( this, mSid, filepath );
+			break;
+	}
+}
+
+Session :: Session( Sid_t sid, short type, char*filepath, void*surface)
+			:mHeadLenConst(sizeof(NET_HEAD))
+			,mSid(sid)
+			,mTaskBase(NULL)
+			,mArg(NULL)
+			,mTotalDataLen(0)
+			,mHasRecvLen(0)
+			,mbRecvHead(true)
+{
+	mReadEvent  = (struct event*)malloc( sizeof( struct event ) );
+	mWriteEvent = (struct event*)malloc( sizeof( struct event ) );
+	mTimeEvent	= (struct event*)malloc( sizeof( struct event ) );
+
+	mStatus  	= eNormal;
+	mRunning 	= 0;
+	mWriting 	= 0;
+	mReading 	= 0;
+	switch(type) {
+		case VIDEO_RECV_MSG:
+			if(!mTaskBase) {
+				mTaskBase = new TaskVideoRecv( this, mSid, filepath );
+				#ifdef __ANDROID__
+					TaskVideoRecv *temp = (TaskVideoRecv*)mTaskBase;
+					temp->setBase(new VideoDecoder(surface));
+				#endif
+			}
 			break;
 
 		case FILE_RECV_MSG:

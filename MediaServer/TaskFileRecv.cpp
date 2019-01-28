@@ -134,14 +134,6 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		return iRet;
 	}
 
-	int TaskFileRecv::StartTask() {
-		return 0;
-	}
-
-	int TaskFileRecv::StopTask() {
-		return 0;
-	}
-
 	int TaskFileRecv::readBuffer() {
 		int ret = -1;
 		int &hasRecvLen = mRecvBuffer.hasProcLen;

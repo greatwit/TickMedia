@@ -5,6 +5,7 @@ LOCAL_PROJECT_ROOT := $(LOCAL_PATH)#$(subst $(LOCAL_PATH)/,,$(wildcard $(LOCAL_P
 
 THREAD_PATH  = ../common/gthread
 NAREDEC_PATH = ../common/NalBareflow
+CODEC_PATH	 = ../Codec
 
 
 include $(CLEAR_VARS)
@@ -18,6 +19,7 @@ LOCAL_MODULE := netmedia
 LOCAL_C_INCLUDES += \
 				   $(LOCAL_PROJECT_ROOT)/net \
 				   $(LOCAL_PROJECT_ROOT)/../common \
+				   $(LOCAL_PROJECT_ROOT)/$(CODEC_PATH) \
 				   $(LOCAL_PROJECT_ROOT)/$(THREAD_PATH) \
 				   external/stlport/stlport bionic
 
@@ -31,6 +33,8 @@ LOCAL_SRC_FILES := net/buffer.c \
 				net/net_protocol.c \
 				$(THREAD_PATH)/gthreadpool.cpp \
 				$(NAREDEC_PATH)/NALDecoder.cpp \
+				$(CODEC_PATH)/VideoBase.cpp \
+				$(CODEC_PATH)/VideoDecoder.cpp \
 				ActorStation.cpp \
 				BufferCache.cpp \
 				DataUtils.cpp \

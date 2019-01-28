@@ -26,6 +26,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 				,mRecvDataLen(0)
 				,mRecvHeadLen(0)
 				,mTotalLen(0)
+				,mvBase(NULL)
 	{
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
@@ -52,6 +53,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 				,mRecvDataLen(0)
 				,mRecvHeadLen(0)
 				,mTotalLen(0)
+				,mvBase(NULL)
 	{
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
@@ -80,6 +82,15 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 			fclose(mwFile);
 
 		mRecvBuffer.releaseMem();
+
+		if(mvBase) {
+			delete mvBase;
+			mvBase = NULL;
+		}
+	}
+
+	void TaskVideoRecv::setBase(VideoBase*base) {
+		mvBase = base;
 	}
 
 	int TaskVideoRecv::sendEx(void*data, int len) {
@@ -158,14 +169,6 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		return iRet;
 	}
 
-	int TaskVideoRecv::StartTask() {
-		return 0;
-	}
-
-	int TaskVideoRecv::StopTask() {
-		return 0;
-	}
-
 	int TaskVideoRecv::readBuffer() {
 		int ret = -1;
 		int &hasRecvLen = mRecvBuffer.hasProcLen;
@@ -215,8 +218,10 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 
 					case MODULE_MSG_VIDEO:
 						lpFrame 		= (LPFILE_GET)(pCmdbuf->lpData);
-						fwrite(lpFrame->lpData , 1 , lpFrame->nLength , mwFile);
+						fwrite(lpFrame->lpData, 1, lpFrame->nLength , mwFile);
 						GLOGW("frame len:%d\n", lpFrame->nLength);
+
+						if(mvBase)mvBase->onDataComing(lpFrame->lpData, lpFrame->nLength);
 						break;
 
 					case MODULE_MSG_LOGINRET:

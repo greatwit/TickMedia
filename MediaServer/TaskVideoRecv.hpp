@@ -6,6 +6,7 @@
 
 #include "h264.h"
 #include "TaskBase.hpp"
+#include "VideoBase.hpp"
 
 class BufferCache;
 
@@ -14,10 +15,10 @@ class TaskVideoRecv :public TaskBase {
 		TaskVideoRecv( Session*sess, Sid_t &sid );
 		TaskVideoRecv( Session*sess, Sid_t &sid, char*filepath );
 		virtual ~TaskVideoRecv();
-		virtual int StartTask();
-		virtual int StopTask();
 		virtual int readBuffer();
 		virtual int writeBuffer();
+
+		void		setBase(VideoBase*base);
 
 	private:
 		int tcpSendData();
@@ -30,6 +31,7 @@ class TaskVideoRecv :public TaskBase {
 		struct tagFileProcBuffer 	mRecvBuffer;
 		Session			*mSess;
 		FILE			*mwFile;
+		VideoBase 		*mvBase;
 
 		int 	mPackHeadLen;
 
