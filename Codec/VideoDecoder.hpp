@@ -5,18 +5,18 @@
 #include <stdio.h>
 
 #include "h264.h"
+#include "mediacodec.h"
 #include "VideoBase.hpp"
 
-class BufferCache;
 
 class VideoDecoder : public VideoBase {
 	public:
-	VideoDecoder( void*surface );
-	virtual ~VideoDecoder();
-	int onDataComing(void*data, int len);
+		VideoDecoder( void*surface );
+		virtual ~VideoDecoder();
+		int onDataComing(void*data, int len);
 
 	private:
-
+		struct mc_api mApi;
 };
 
 

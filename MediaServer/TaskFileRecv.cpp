@@ -43,7 +43,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 	}
 
 
-	TaskFileRecv::TaskFileRecv( Session*sess, Sid_t &sid, char*filepath )
+	TaskFileRecv::TaskFileRecv( Session*sess, Sid_t &sid, char*remoteFile )
 				:mPackHeadLen(sizeof(NET_CMD))
 				,TaskBase(sid)
 				,mSess(sess)
@@ -58,7 +58,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		mwFile = fopen(FILE_PATH, "w");
 
 		char lpData[2048];
-		int nLength = sprintf(lpData, "<get path=\"%s\"/>", filepath);
+		int nLength = sprintf(lpData, "<get path=\"%s\"/>", remoteFile);
 
 
 		if(SendCmd(MODULE_MSG_LOGIN, 0, lpData, nLength)<0)
@@ -66,6 +66,27 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 
 	}
 
+	TaskFileRecv::TaskFileRecv( Session*sess, Sid_t &sid, char*remoteFile, char*saveFile )
+				:mPackHeadLen(sizeof(NET_CMD))
+				,TaskBase(sid)
+				,mSess(sess)
+				,mRecvDataLen(0)
+				,mRecvHeadLen(0)
+				,mTotalLen(0)
+	{
+		mCmdBuffer.reset();
+		mRecvBuffer.reset();
+		mRecvBuffer.createMem(BUFFER_LEN);
+
+		mwFile = fopen(saveFile, "w");
+
+		char lpData[2048];
+		int nLength = sprintf(lpData, "<get path=\"%s\"/>", remoteFile);
+
+
+		if(SendCmd(MODULE_MSG_LOGIN, 0, lpData, nLength)<0)
+			GLOGE("send CMD err!");
+	}
 
 	TaskFileRecv::~TaskFileRecv() {
 

@@ -2,22 +2,15 @@
 //
 
 
-
+#include <stdlib.h>
 #include <string.h>
 #include <memory.h>
-#include "h264.h"
-
+#include "NALDecoder.h"
 
 FILE *bits = NULL;                //!< the bit stream file
+static int info2=0, info3=0;
 static int FindStartCode2 (unsigned char *Buf);//查找开始字符0x000001
 static int FindStartCode3 (unsigned char *Buf);//查找开始字符0x00000001
-//static bool flag = true;
-static int info2=0, info3=0;
-RTP_FIXED_HEADER        *rtp_hdr;
-
-//NALU_HEADER		*nalu_hdr;
-FU_INDICATOR	*fu_ind;
-FU_HEADER		*fu_hdr;
 
 static int FindStartCode2 (unsigned char *Buf) {
 	 if(Buf[0]!=0 || Buf[1]!=0 || Buf[2] !=1)
@@ -48,9 +41,9 @@ NALU_t *AllocNALU(int buffersize)
 
 	  if ((n->buf = (unsigned char*)calloc (buffersize, sizeof (char))) == NULL)
 	  {
-		  free (n);
-		  printf ("AllocNALU: n->buf");
-		  exit(0);
+		free (n);
+		printf ("AllocNALU: n->buf");
+		exit(0);
 	  }
 
 	  return n;
@@ -61,12 +54,12 @@ void FreeNALU(NALU_t *n)
 {
 	  if (n)
 	  {
-			if (n->buf)
-			{
-				free(n->buf);
-				n->buf=NULL;
-			}
-			free (n);
+		if (n->buf)
+		{
+		  free(n->buf);
+		  n->buf=NULL;
+		}
+		free (n);
 	  }
 }
 
@@ -80,7 +73,7 @@ FILE* OpenBitstreamFile (const char *filename) {
 	  return file;
 }
 
-void  CloseBitstreamFile(FILE*file){
+void  CloseBitstreamFile(FILE*file) {
 	if(file!=NULL)
 		fclose(file);
 }

@@ -236,6 +236,40 @@ Session :: Session( Sid_t sid, short type, char*filepath, void*surface)
 	}
 }
 
+Session :: Session( Sid_t sid, short type, char*remoteFile, char*saveFile)
+			:mHeadLenConst(sizeof(NET_HEAD))
+			,mSid(sid)
+			,mTaskBase(NULL)
+			,mArg(NULL)
+			,mTotalDataLen(0)
+			,mHasRecvLen(0)
+			,mbRecvHead(true)
+{
+	mReadEvent  = (struct event*)malloc( sizeof( struct event ) );
+	mWriteEvent = (struct event*)malloc( sizeof( struct event ) );
+	mTimeEvent	= (struct event*)malloc( sizeof( struct event ) );
+
+	mStatus  	= eNormal;
+	mRunning 	= 0;
+	mWriting 	= 0;
+	mReading 	= 0;
+	switch(type) {
+		case VIDEO_RECV_MSG:
+			if(!mTaskBase) {
+				mTaskBase = new TaskVideoRecv( this, mSid, remoteFile );
+				#ifdef __ANDROID__
+					TaskVideoRecv *temp = (TaskVideoRecv*)mTaskBase;
+					//temp->setBase(new VideoDecoder(surface));
+				#endif
+			}
+			break;
+
+		case FILE_RECV_MSG:
+				mTaskBase = new TaskFileRecv( this, mSid, remoteFile, saveFile );
+			break;
+	}
+}
+
 Session :: ~Session()
 {
 	free( mReadEvent );

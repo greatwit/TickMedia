@@ -6,9 +6,11 @@
 #include <jni.h>
 #include "basedef.h"
 
+#include <android/native_window_jni.h>
+
 #define REG_PATH "com/great/happyness/netcodec/NativeCodec"
 
-JavaVM*		g_javaVM		= NULL;
+JavaVM*		 g_javaVM		= NULL;
 ActorStation mStatiion;
 TcpClient	 *mpClient		= NULL;
 TcpServer	 *mpServer		= NULL;
@@ -52,16 +54,19 @@ static jboolean StopServer(JNIEnv *env, jobject)
 	return true;
 }
 
-static jboolean StartSend(JNIEnv *env, jobject, jstring destip, jint destport)
+////////////////////////////////////////////client/////////////////////////////////////////////////////
+
+static jboolean StartFileRecv(JNIEnv *env, jobject, jstring destip, jint destport, jstring remoteFile, jstring saveFile)//ip port remotefile savefile
 {
 	int ret = 0;
 	if(mpClient==NULL) {
 
 		jboolean isOk = JNI_FALSE;
-		const char*filepath = "/sdcrad/tmp.mp4";
+		const char*rfile = env->GetStringUTFChars(remoteFile, &isOk);
+		const char*sfile = env->GetStringUTFChars(saveFile, &isOk);
 		const char *ip = env->GetStringUTFChars(destip, &isOk);
 		mpClient = new TcpClient();
-		ret = mpClient->connect( ip, destport, filepath );
+		ret = mpClient->connect( ip, destport, rfile, sfile );
 
 		if(ret < 0) {
 			delete mpClient;
@@ -70,6 +75,9 @@ static jboolean StartSend(JNIEnv *env, jobject, jstring destip, jint destport)
 		}
 
 		mpClient->registerEvent(mStatiion.getEventArg());
+
+		env->ReleaseStringUTFChars(remoteFile, rfile);
+		env->ReleaseStringUTFChars(saveFile, sfile);
 		env->ReleaseStringUTFChars(destip, ip);
 
 		return true;
@@ -77,7 +85,44 @@ static jboolean StartSend(JNIEnv *env, jobject, jstring destip, jint destport)
 	return false;
 }
 
-static jboolean StopSend(JNIEnv *env, jobject)
+static jboolean StopFileRecv(JNIEnv *env, jobject)
+{
+	if(mpClient!=NULL){
+		mpClient->disConnect();
+		delete mpClient;
+		mpClient = NULL;
+	}
+	return true;
+}
+
+static jboolean StartVideoView(JNIEnv *env, jobject, jstring destip, jint destport, jstring remoteFile, jobject surface)//ip port remotefile surface
+{
+	int ret = 0;
+	if(mpClient==NULL) {
+
+		jboolean isOk = JNI_FALSE;
+		const char*filepath = env->GetStringUTFChars(remoteFile, &isOk);
+		const char *ip 		= env->GetStringUTFChars(destip, &isOk);
+		ANativeWindow *pAnw = ANativeWindow_fromSurface(env, surface);
+		mpClient = new TcpClient();
+		ret = mpClient->connect( ip, destport, filepath, pAnw );
+
+		if(ret < 0) {
+			delete mpClient;
+			mpClient = NULL;
+			return false;
+		}
+
+		mpClient->registerEvent(mStatiion.getEventArg());
+		env->ReleaseStringUTFChars(remoteFile, filepath);
+		env->ReleaseStringUTFChars(destip, ip);
+
+		return true;
+	}
+	return false;
+}
+
+static jboolean StopVideoView(JNIEnv *env, jobject)
 {
 	if(mpClient!=NULL){
 		mpClient->disConnect();
@@ -93,8 +138,11 @@ static JNINativeMethod video_method_table[] = {
 		{"StopNetWork", "()Z", (void*)StopNetWork },
 		{"StartServer", "(Ljava/lang/String;I)Z", (void*)StartServer },
 		{"StopServer", "()Z", (void*)StopServer },
-		{"StartSend", "(Ljava/lang/String;I)Z", (void*)StartSend },
-		{"StopSend", "()Z", (void*)StopSend },
+
+		{"StartFileRecv", "(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)Z", (void*)StartFileRecv },
+		{"StopFileRecv", "()Z", (void*)StopFileRecv },
+		{"StartVideoView", "(Ljava/lang/String;ILjava/lang/String;Landroid/view/Surface;)Z", (void*)StartVideoView },
+		{"StopVideoView", "()Z", (void*)StopVideoView },
 };
 
 int registerNativeMethods(JNIEnv* env, const char* className, JNINativeMethod* methods, int numMethods)

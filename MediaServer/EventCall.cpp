@@ -226,15 +226,15 @@ void EventCall :: onWrite( int fd, short events, void * arg )
 
 	//>0 need listen,<=0 not do that
 	if(ret==OWN_SOCK_EXIT) {
-		EventArg * eventArg = (EventArg*)session->getArg();
-		eventArg->getSessionManager()->remove( fd );
-		event_del( session->getReadEvent() );
-		event_del( session->getWriteEvent() );
-		event_del( session->getTimeEvent() );
-
-		delete session;
-		session = NULL;
-		close( fd );
+//		EventArg * eventArg = (EventArg*)session->getArg();
+//		eventArg->getSessionManager()->remove( fd );
+//		event_del( session->getReadEvent() );
+//		event_del( session->getWriteEvent() );
+//		event_del( session->getTimeEvent() );
+//
+//		delete session;
+//		session = NULL;
+//		close( fd );
 	}
 	else if(ret != 0)
 		addEvent( session, EV_WRITE, fd );

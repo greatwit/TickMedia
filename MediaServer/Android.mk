@@ -6,6 +6,7 @@ LOCAL_PROJECT_ROOT := $(LOCAL_PATH)#$(subst $(LOCAL_PATH)/,,$(wildcard $(LOCAL_P
 THREAD_PATH  = ../common/gthread
 NAREDEC_PATH = ../common/NalBareflow
 CODEC_PATH	 = ../Codec
+MCNDK_PATH	 = ../Codec/Mcndk
 
 
 include $(CLEAR_VARS)
@@ -20,6 +21,7 @@ LOCAL_C_INCLUDES += \
 				   $(LOCAL_PROJECT_ROOT)/net \
 				   $(LOCAL_PROJECT_ROOT)/../common \
 				   $(LOCAL_PROJECT_ROOT)/$(CODEC_PATH) \
+				   $(LOCAL_PROJECT_ROOT)/$(MCNDK_PATH) \
 				   $(LOCAL_PROJECT_ROOT)/$(THREAD_PATH) \
 				   external/stlport/stlport bionic
 
@@ -35,6 +37,8 @@ LOCAL_SRC_FILES := net/buffer.c \
 				$(NAREDEC_PATH)/NALDecoder.cpp \
 				$(CODEC_PATH)/VideoBase.cpp \
 				$(CODEC_PATH)/VideoDecoder.cpp \
+				$(MCNDK_PATH)/mediacodec_ndk.c \
+				$(MCNDK_PATH)/mediaextrator_ndk.c \
 				ActorStation.cpp \
 				BufferCache.cpp \
 				DataUtils.cpp \
@@ -51,7 +55,7 @@ LOCAL_SRC_FILES := net/buffer.c \
 				NativeApi.cpp
 
 #LOCAL_SHARED_LIBRARIES := avformat avcodec avutil swresample
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -landroid
 
 include $(BUILD_SHARED_LIBRARY)
 

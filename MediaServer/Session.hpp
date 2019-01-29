@@ -24,6 +24,7 @@ public:
 	Session( Sid_t sid, short type);
 	Session( Sid_t sid, short type, char*filepath);
 	Session( Sid_t sid, short type, char*filepath, void*surface);
+	Session( Sid_t sid, short type, char*remoteFile, char*saveFile);
 	virtual ~Session();
 
 	struct event * getReadEvent();	

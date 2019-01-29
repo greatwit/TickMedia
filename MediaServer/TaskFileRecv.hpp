@@ -12,7 +12,8 @@ class BufferCache;
 class TaskFileRecv :public TaskBase {
 	public:
 		TaskFileRecv( Session*sess, Sid_t &sid );
-		TaskFileRecv( Session*sess, Sid_t &sid, char*filepath );
+		TaskFileRecv( Session*sess, Sid_t &sid, char*remoteFile );
+		TaskFileRecv( Session*sess, Sid_t &sid, char*remoteFile, char*saveFile );
 		virtual ~TaskFileRecv();
 		virtual int readBuffer();
 		virtual int writeBuffer();
