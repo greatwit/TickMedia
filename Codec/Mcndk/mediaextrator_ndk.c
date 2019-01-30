@@ -104,13 +104,17 @@ bool InitExtratorSymbols(struct symext *symbols)//mc_api *api
         if (!sym && members[i].critical)
         {
             dlclose(ndk_handle);
+            ndk_handle = NULL;
 			GLOGE("dlextsym total:%d", i);
             goto end;
         }
         *(void **)((uint8_t*)symbols + members[i].offset) = sym;
     }
+    symbols->mHandle = ndk_handle;
+
 	GLOGE("jump for i:%d", i);
     i_init_state = 1;
+
 end:
     ret = i_init_state == 1;
     if (!ret)
@@ -118,6 +122,15 @@ end:
 
     //vlc_mutex_unlock(&lock);
     return ret;
+}
+
+bool ReleaseExtratorSymbols(struct symext *symbols) {
+	bool ret = true;
+	if(symbols&&symbols->mHandle) {
+        dlclose(symbols->mHandle);
+        symbols->mHandle = NULL;
+	}
+	return ret;
 }
 
 /*****************************************************************************

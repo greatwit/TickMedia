@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "h264.h"
-#include "mediacodec.h"
+#include "mediaextrator.h"
 #include "VideoBase.hpp"
 
 
@@ -16,7 +16,13 @@ class VideoDecoder : public VideoBase {
 		int onDataComing(void*data, int len);
 
 	private:
-		struct mc_api mApi;
+		struct symext 		mSymbols;
+		AMediaCodec*	 	mCodec;
+	    AMediaFormat* 		mFormat;
+	    void*				mSurface;
+	    bool 				mbSpsDone;
+	    bool 				mbPpsDone;
+	    int 				mCount;
 };
 
 

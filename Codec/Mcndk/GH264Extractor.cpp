@@ -21,6 +21,9 @@ GH264Extractor::~GH264Extractor()
 {
 	if(mrFile)
 		fclose(mrFile);
+
+	mSymbols.AMediaFormat.deletefmt(mFormat);
+	ReleaseExtratorSymbols(&mSymbols);
 }
 
 void* GH264Extractor::Thread() {
@@ -79,11 +82,11 @@ void* GH264Extractor::Thread() {
 						continue;
 					}
 
-					usleep(25*1000);
+					usleep(20*1000);
 					AMediaCodecBufferInfo info;
 					ssize_t out_index = mSymbols.AMediaCodec.dequeueOutputBuffer(mCodec, &info, 10000);//AMediaCodecBufferInfo *info, int64_t timeoutUs
 					GLOGW("AMediaCodec.dequeueOutputBuffer out_index:%d", out_index);
-					usleep(25*1000);
+					usleep(10*1000);
 					status = mSymbols.AMediaCodec.releaseOutputBuffer(mCodec, out_index, true);
 					GLOGW("AMediaCodec.releaseOutputBuffer status:%d", status);
 				}
@@ -139,6 +142,7 @@ int GH264Extractor::stopPlayer() {
 	if(mCodec) {
 		mSymbols.AMediaCodec.stop(mCodec);
 		mSymbols.AMediaCodec.deletemc(mCodec);
+		mCodec = NULL;
 	}
 
 	return rest;

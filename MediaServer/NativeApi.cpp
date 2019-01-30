@@ -8,7 +8,7 @@
 
 #include <android/native_window_jni.h>
 
-#define REG_PATH "com/great/happyness/netcodec/NativeCodec"
+#define REG_PATH "com/great/happyness/medialib/NativeNetMedia"
 
 JavaVM*		 g_javaVM		= NULL;
 ActorStation mStatiion;
@@ -178,6 +178,6 @@ extern "C" jint JNI_OnLoad(JavaVM* vm, void* reserved)
 			REG_PATH, video_method_table,
 			NELEM(video_method_table));
 
-	return JNI_VERSION_1_6;
+	return JNI_VERSION_1_4;
 }
 
