@@ -14,7 +14,7 @@
 #ifdef 	__ANDROID__
 #define	FILE_PATH	"/sdcard/w.h264"
 #else
-#define	FILE_PATH	"recv.mp4"
+#define	FILE_PATH	"recv.h264"
 #endif
 
 const int	 BUFFER_LEN  = 1024*1024+1500;
@@ -165,7 +165,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 			GLOGE("send lpdata err len = %d",nLength);
 			return iRet;
 		}
-		GLOGW("send data len:%d lpData:%s\n", nLength, lpData);
+		GLOGW("send data len:%d lpData:%s\n", nLength, (char*)lpData);
 		return iRet;
 	}
 

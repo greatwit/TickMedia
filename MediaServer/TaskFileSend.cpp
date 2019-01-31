@@ -17,7 +17,7 @@
 #undef   _FILE_OFFSET_BITS
 #define  _FILE_OFFSET_BITS	64
 
-const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
+
 #define 	SEG_FRAME_COUNT 10
 
 
@@ -111,7 +111,7 @@ const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
 					return 0;
 
 				unsigned int iLeftLen 	= mFileLen - mHasReadLen;
-				unsigned int iBuffLen 	= (iLeftLen > BUFFER_LEN)?BUFFER_LEN:iLeftLen;
+				unsigned int iBuffLen 	= (iLeftLen > FILE_MEMORY_LEN)?FILE_MEMORY_LEN:iLeftLen;
 				mSendBuffer.totalLen 	= sizeof(NET_CMD) + sizeof(FILE_GET);
 				mSendBuffer.bProcCmmd 	= true;
 				LPNET_CMD	 cmd 		= (LPNET_CMD)mSendBuffer.cmmd;

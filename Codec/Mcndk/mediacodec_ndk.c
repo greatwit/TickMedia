@@ -459,7 +459,7 @@ static int DequeueOutput(mc_api *api, mtime_t i_timeout)
     ssize_t i_index;
 
     i_index = syms.AMediaCodec.dequeueOutputBuffer(p_sys->p_codec, &p_sys->info, i_timeout);
-    GLOGE("dequeueOutputBuffer size:%d time:%d", p_sys->info.size, p_sys->info.presentationTimeUs);
+    GLOGE("dequeueOutputBuffer size:%d time:%lld", p_sys->info.size, p_sys->info.presentationTimeUs);
     if (i_index >= 0)
         return i_index;
     else if (i_index == AMEDIACODEC_INFO_TRY_AGAIN_LATER)

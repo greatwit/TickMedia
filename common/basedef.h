@@ -81,6 +81,9 @@ typedef unsigned long DWORD;
 #define SAFE_FREE(p) 	do{free(p); p = NULL;}while(0)
 #endif
 
+#ifndef FILE_BUFFER_LEN
+static const int	FILE_MEMORY_LEN  	= 512*1024;//512k 1m
+#endif
 
 
 #ifdef __cplusplus

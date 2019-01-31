@@ -17,7 +17,7 @@
 #undef   _FILE_OFFSET_BITS
 #define  _FILE_OFFSET_BITS	64
 
-const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
+
 #define 	SEG_FRAME_COUNT 10
 
 
@@ -157,7 +157,6 @@ const int	BUFFER_LEN  	= 1024*1024;//1m  //ref max value 1040000
 		struct timeval timeout;
 		int sockId = mSid.mKey;
 		do {
-
 			iRet = send(sockId, data+len-leftLen, leftLen, 0);
 
 			if(iRet<0) {

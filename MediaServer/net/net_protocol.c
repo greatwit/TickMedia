@@ -258,7 +258,7 @@ int PROTO_MakeClientMsg(PROTO_ST_MSG *stMsg,char *pData, char *pName)
     int ret;
     unsigned char ClientID[32]={0};
     
-    PROTO_GetValueByName(pData, pName, (char**)&pcValue,&lValueLen);
+    PROTO_GetValueByName(pData, pName, (char*)pcValue,&lValueLen);	//origin (char**)&pcValue changed datetime:20190131
 	if(pcValue)
 	{
 		memcpy(ClientID, pcValue, lValueLen);

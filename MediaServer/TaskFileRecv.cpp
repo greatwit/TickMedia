@@ -17,7 +17,6 @@
 #define	FILE_PATH	"recv.mp4"
 #endif
 
-const int	 BUFFER_LEN  = 1024*1024+1500;
 
 	TaskFileRecv::TaskFileRecv( Session*sess, Sid_t &sid )
 				:mPackHeadLen(sizeof(NET_CMD))
@@ -29,7 +28,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 	{
 		mCmdBuffer.reset();
 		mRecvBuffer.reset();
-		mRecvBuffer.createMem(BUFFER_LEN);
+		mRecvBuffer.createMem(FILE_MEMORY_LEN);
 
 		mwFile = fopen(FILE_PATH, "w");
 
@@ -53,7 +52,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 	{
 		mCmdBuffer.reset();
 		mRecvBuffer.reset();
-		mRecvBuffer.createMem(BUFFER_LEN);
+		mRecvBuffer.createMem(FILE_MEMORY_LEN);
 
 		mwFile = fopen(FILE_PATH, "w");
 
@@ -76,7 +75,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 	{
 		mCmdBuffer.reset();
 		mRecvBuffer.reset();
-		mRecvBuffer.createMem(BUFFER_LEN);
+		mRecvBuffer.createMem(FILE_MEMORY_LEN);
 
 		mwFile = fopen(saveFile, "w");
 
@@ -137,7 +136,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		nc.dwLength = nLength;
 		if ((iRet = sendEx(&nc, sizeof(nc)))<0)
 		{
-			GLOGE("send cmd err len = %d", nLength);
+			GLOGE("send cmd err len = %d \n", nLength);
 			return iRet;
 		}
 
@@ -148,10 +147,10 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		}
 		if ((iRet = sendEx(lpData, nLength))<0)
 		{
-			GLOGE("send lpdata err len = %d",nLength);
+			GLOGE("send lpdata err len = %d \n",nLength);
 			return iRet;
 		}
-		GLOGW("send data len:%d lpData:%s\n", nLength, lpData);
+		GLOGW("send data len:%d lpData:%s\n", nLength, (char*)lpData);
 		return iRet;
 	}
 
