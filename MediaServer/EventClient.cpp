@@ -20,6 +20,8 @@ void usage(char*exename) {
 	printf("Usage: %s -v filepath\n -f remotefile savefile", exename);
 }
 
+#define IPADDR "192.168.1.107"		//"127.0.0.1"
+
 int main( int argc, char * argv[] )
 {
 	int port = PORT, maxThreads = 10;
@@ -58,9 +60,9 @@ int main( int argc, char * argv[] )
 
 	TcpClient client;
 	if(!strcmp(argv[1], "-v")&&argc==3)
-		client.connect("127.0.0.1", port, (const char*)argv[2]);			//127.0.0.1 192.168.1.108
+		client.connect(IPADDR, port, (const char*)argv[2]);			//127.0.0.1 192.168.1.108
 	else if(!strcmp(argv[1], "-f")&&argc==4)
-		client.connect("127.0.0.1", port, (const char*)argv[2], (const char*)argv[3]);
+		client.connect(IPADDR, port, (const char*)argv[2], (const char*)argv[3]);
 	else
 		usage(argv[0]);
 
