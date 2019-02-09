@@ -11,6 +11,8 @@
 #define REG_PATH "com/great/happyness/medialib/NativeNetMedia"
 
 JavaVM*		 g_javaVM		= NULL;
+jclass 		 g_mClass		= NULL;
+
 ActorStation mStatiion;
 TcpClient	 *mpClient		= NULL;
 TcpServer	 *mpServer		= NULL;
@@ -34,13 +36,16 @@ static jboolean StopNetWork(JNIEnv *env, jobject) {
 	return false;
 }
 
-static jboolean StartServer(JNIEnv *env, jobject, jstring localip, jint destport)
+static jboolean StartServer(JNIEnv *env, jobject obj, jstring localip, jint destport)
 {
 	if(mpServer==NULL) {
 		mpServer = new TcpServer("", destport);
 		mpServer->setMaxThreads( 10 );
 		mpServer->registerEvent(mStatiion.getEventArg());
 	}
+
+	g_mClass = (jclass)env->NewGlobalRef(obj);
+
 	return true;
 }
 
@@ -52,6 +57,16 @@ static jboolean StopServer(JNIEnv *env, jobject)
 		mpServer = NULL;
 	}
 	return true;
+}
+
+static jboolean SetServerSurface(JNIEnv *env, jobject, jobject surface)
+{
+	if(mpServer!=NULL) {
+		ANativeWindow *pAnw = ANativeWindow_fromSurface(env, surface);
+		mpServer->setSurface(pAnw);
+		return true;
+	}
+	return false;
 }
 
 ////////////////////////////////////////////client/////////////////////////////////////////////////////
@@ -94,6 +109,8 @@ static jboolean StopFileRecv(JNIEnv *env, jobject)
 	}
 	return true;
 }
+
+//-----------------------------------------------------------------video client---------------------------------------------------------------------------------
 
 static jboolean StartVideoView(JNIEnv *env, jobject, jstring destip, jint destport, jstring remoteFile, jobject surface)//ip port remotefile surface
 {
@@ -138,6 +155,7 @@ static JNINativeMethod video_method_table[] = {
 		{"StopNetWork", "()Z", (void*)StopNetWork },
 		{"StartServer", "(Ljava/lang/String;I)Z", (void*)StartServer },
 		{"StopServer", "()Z", (void*)StopServer },
+		{"SetServerSurface", "(Landroid/view/Surface;)Z", (void*)SetServerSurface },
 
 		{"StartFileRecv", "(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)Z", (void*)StartFileRecv },
 		{"StopFileRecv", "()Z", (void*)StopFileRecv },

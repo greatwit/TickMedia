@@ -1,21 +1,16 @@
 
-
-
 #ifndef __session_hpp__
 #define __session_hpp__
-
 
 
 #include <unistd.h>
 #include "TaskBase.hpp"
 
 //class SP_Handler;
-
-class SP_ArrayList;
+//class SP_ArrayList;
 
 
 struct event;
-
 
 class Session {
 
@@ -33,6 +28,8 @@ public:
 
 	//void setHandler( SP_Handler * handler );
 	//SP_Handler * getHandler();
+
+	void setSurface(void *surface);
 
 	void setArg( void * arg );
 	void * getArg();
@@ -94,6 +91,8 @@ class SessionManager {
 public:
 	SessionManager();
 	~SessionManager();
+
+	void setSurface(void*surface);
 
 	int getCount();
 	void put( uint16_t key, Session * session, uint16_t * seq );

@@ -15,6 +15,7 @@ public:
 	TcpClient( );
 	virtual ~TcpClient();
 
+	int connect(const char* destIp, unsigned short destPort);
 	int connect(const char* destIp, unsigned short destPort, const char*filepath);
 	int connect(const char* destIp, unsigned short destPort, const char*filepath, void *surface);
 	int connect(const char* destIp, unsigned short destPort, const char*remoteFile, const char*saveFile);

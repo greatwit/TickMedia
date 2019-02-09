@@ -32,10 +32,10 @@ TcpServer :: TcpServer( const char * bindIP, int port )
 	mListenFD = 0;
 
 
-	mMaxThreads = 64;
-	mReqQueueSize = 128;
+	mMaxThreads 	= 64;
+	mReqQueueSize 	= 128;
 	mMaxConnections = 256;
-	mRefusedMsg = strdup( "System busy, try again later." );
+	mRefusedMsg 	= strdup( "System busy, try again later." );
 }
 
 TcpServer :: ~TcpServer()
@@ -43,7 +43,6 @@ TcpServer :: ~TcpServer()
 	if( NULL != mRefusedMsg ) free( mRefusedMsg );
 	mRefusedMsg = NULL;
 }
-
 
 
 void TcpServer :: setMaxThreads( int maxThreads )
@@ -89,6 +88,14 @@ void TcpServer :: shutdown() {
 		close(mListenFD);
 		mListenFD = 0;
 		GLOGW("close listenid:%d\n", mListenFD);
+	}
+}
+
+void TcpServer :: setSurface(void*surface) {
+	if(mAcceptArg.mEventArg) {
+		EventArg *arg = mAcceptArg.mEventArg;
+		SessionManager * manager = arg->getSessionManager();
+		manager->setSurface(surface);
 	}
 }
 

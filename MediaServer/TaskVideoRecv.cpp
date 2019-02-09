@@ -27,15 +27,14 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 				,mRecvHeadLen(0)
 				,mTotalLen(0)
 				,mvBase(NULL)
+				,mwFile(NULL)
 	{
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
 		mRecvBuffer.createMem(BUFFER_LEN);
 
-		mwFile = fopen(FILE_PATH, "w");
-
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
-		int nLength = sprintf(pCmd->lpData, "<play path=\"%s\"/>", "/h264/tmp.mp4");
+		int nLength = sprintf(pCmd->lpData, "<play real=\"%s\"/>", "/sdcard/ModuleTest/720p.h264");
 		pCmd->dwFlag 	= NET_FLAG;
 		pCmd->dwCmd 	= MODULE_MSG_LOGIN;
 		pCmd->dwIndex 	= 0;
@@ -76,10 +75,12 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 
 	TaskVideoRecv::~TaskVideoRecv() {
 
-		GLOGW("file seek:%ld\n", ftell(mwFile));
+		if(mwFile != NULL) {
+			GLOGW("file seek:%ld\n", ftell(mwFile));
 
-		if(mwFile != NULL)
 			fclose(mwFile);
+			mwFile = NULL;
+		}
 
 		mRecvBuffer.releaseMem();
 
@@ -218,7 +219,8 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 
 					case MODULE_MSG_VIDEO:
 						lpFrame 		= (LPFILE_GET)(pCmdbuf->lpData);
-						fwrite(lpFrame->lpData, 1, lpFrame->nLength , mwFile);
+						if(mwFile)
+							fwrite(lpFrame->lpData, 1, lpFrame->nLength, mwFile);
 						GLOGW("frame len:%d\n", lpFrame->nLength);
 
 						if(mvBase)mvBase->onDataComing(lpFrame->lpData, lpFrame->nLength);

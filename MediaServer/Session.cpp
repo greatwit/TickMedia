@@ -13,11 +13,13 @@
 
 #include "TaskVideoRecv.hpp"
 #include "TaskVideoSend.hpp"
+
 #include "TaskFileSend.hpp"
 #include "TaskFileRecv.hpp"
 #include "Session.hpp"
 
 #ifdef __ANDROID__
+#include "TaskVideoRealSend.hpp"
 #include "VideoDecoder.hpp"
 #endif
 
@@ -57,10 +59,27 @@ SessionManager :: ~SessionManager()
 				}
 			}
 			free( list );
+			list = NULL;
 		}
 	}
 
 	memset( mArray, 0, sizeof( mArray ) );
+}
+
+void SessionManager :: setSurface(void*surface) {
+
+	for( int i = 0; i < (int)( sizeof( mArray ) / sizeof( mArray[0] ) ); i++ ) {
+		SessionEntry_t * list = mArray[ i ];
+		if( NULL != list ) {
+			SessionEntry_t * iter = list;
+			for( int i = 0; i < 1024; i++, iter++ ) {
+				if( NULL != iter->mSession ) {
+					Session*sess = iter->mSession;
+					sess->setSurface(surface);
+				}
+			}
+		}
+	}
 }
 
 int SessionManager :: getCount()
@@ -73,8 +92,7 @@ void SessionManager :: put( uint16_t key, Session * session, uint16_t * seq )
 	int row = key / 1024, col = key % 1024;
 
 	if( NULL == mArray[ row ] ) {
-		mArray[ row ] = ( SessionEntry_t * )calloc(
-			1024, sizeof( SessionEntry_t ) );
+		mArray[ row ] = ( SessionEntry_t * )calloc(1024, sizeof( SessionEntry_t ));
 	}
 
 	SessionEntry_t * list = mArray[ row ];
@@ -287,6 +305,17 @@ Session :: ~Session()
 	}
 }
 
+void Session :: setSurface(void *surface) {
+#ifdef __ANDROID__
+	if(typeid(TaskVideoRealSend)==typeid(*mTaskBase)) {
+		TaskVideoRealSend * realTast = (TaskVideoRealSend*)mTaskBase;
+		realTast->setSurface(surface);
+
+		GLOGE("TaskVideoRealSend setSurface\n");
+	}
+#endif
+}
+
 int Session :: setHeartBeat() {
 	return mTaskBase!=NULL?mTaskBase->setHeartCount():0;
 }
@@ -350,14 +379,8 @@ int Session ::recvPackData() {
 		mHasRecvLen += ret;
 		if(mHasRecvLen==mTotalDataLen) {
 
-//			if(ret>0){
-//				for(int i=0;i<mTotalDataLen;i++)
-//					printf("%c",mReadBuff[i]);
-//				printf("\n\n");
-//			}
-
-		    int lValueLen,dataType=-1;
-		    char acValue[256] = {0};//new char[256];
+		    int lValueLen, dataType=-1;
+		    char acValue[256] = {0};	//new char[256];
 		    memset(acValue,0, 256);
 			LPNET_CMD pCmdbuf = (LPNET_CMD)mReadBuff;
 		    PROTO_GetValueByName(mReadBuff, (char*)"play path", acValue, &lValueLen);
@@ -367,6 +390,12 @@ int Session ::recvPackData() {
 		    	PROTO_GetValueByName(mReadBuff, (char*)"get path", acValue, &lValueLen);
 		    	if(lValueLen>0)
 		    		dataType = 1;
+		    	else
+		    	{
+			    	PROTO_GetValueByName(mReadBuff, (char*)"play real", acValue, &lValueLen);
+			    	if(lValueLen>0)
+			    		dataType = 2;
+		    	}
 		    }
 		    GLOGE("filename:%s cmd:%d dataType:%d\n", acValue, pCmdbuf->dwCmd, dataType);
 
@@ -383,8 +412,10 @@ int Session ::recvPackData() {
 				case 1:
 					mTaskBase = new TaskFileSend( this, mSid, acValue );
 					break;
-
-				case FILE_RECV_MSG:
+				case 2:
+#ifdef __ANDROID__
+					mTaskBase = new TaskVideoRealSend( this, mSid, acValue );
+#endif
 					break;
 			}
 			mTotalDataLen = 0;

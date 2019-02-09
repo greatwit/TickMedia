@@ -8,8 +8,9 @@ CXXFLAGS 	+= -Dlinux -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
 THREAD_PATH  = ../common/gthread
 NAREDEC_PATH = ../common/NalBareflow
 CODEC_PATH	 = ../Codec
+CAMERA_PATH	 = ../Camera
 
-COMPLIE_INCL = -I./net -I../common -I$(THREAD_PATH) -I$(CODEC_PATH)
+COMPLIE_INCL = -I./net -I../common -I$(THREAD_PATH) -I$(CODEC_PATH) -I$(CAMERA_PATH)
 #COMPLIE_LIB  = -L$(FFMPEG_PATH)/lib -lavformat -lavcodec -lavdevice -lavfilter -lswresample -lswscale -lavutil
 CFLAGS   += -I./ -I./net -I../common
 CXXFLAGS += $(COMPLIE_INCL)

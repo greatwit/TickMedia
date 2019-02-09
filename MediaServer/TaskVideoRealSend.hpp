@@ -1,22 +1,26 @@
-#ifndef __TaskVideoSend_hpp__
-#define __TaskVideoSend_hpp__
+#ifndef __TaskVideoRealSend_hpp__
+#define __TaskVideoRealSend_hpp__
 
 
 #include "h264.h"
 
+#include "IVideoCallback.h"
 #include "TaskBase.hpp"
 #include "GQueue.h"
 
 
-class TaskVideoSend :public TaskBase {
+
+class TaskVideoRealSend : public TaskBase, public IVideoCallback{
 
 	public:
-		TaskVideoSend( Session*sess, Sid_t& sid, char*filename );
-		virtual ~TaskVideoSend();
+		TaskVideoRealSend( Session*sess, Sid_t& sid, char*filename );
+		virtual ~TaskVideoRealSend();
 
 		virtual int setHeartCount();
 		virtual int readBuffer();
 		virtual int writeBuffer();
+
+		void setSurface(void *surface);
 
 	private:
 		int tcpSendData();

@@ -15,6 +15,7 @@ class TaskFileSend :public TaskBase {
 	public:
 		TaskFileSend( Session*sess, Sid_t& sid, char*filename );
 		virtual ~TaskFileSend();
+
 		virtual int setHeartCount();
 		virtual int readBuffer();
 		virtual int writeBuffer();

@@ -7,6 +7,7 @@ THREAD_PATH  = ../common/gthread
 NAREDEC_PATH = ../common/NalBareflow
 CODEC_PATH	 = ../Codec
 MCNDK_PATH	 = ../Codec/Mcndk
+CAMERA_PATH	 = ../Camera
 
 
 include $(CLEAR_VARS)
@@ -22,6 +23,7 @@ LOCAL_C_INCLUDES += \
 				   $(LOCAL_PROJECT_ROOT)/../common \
 				   $(LOCAL_PROJECT_ROOT)/$(CODEC_PATH) \
 				   $(LOCAL_PROJECT_ROOT)/$(MCNDK_PATH) \
+				   $(LOCAL_PROJECT_ROOT)/$(CAMERA_PATH) \
 				   $(LOCAL_PROJECT_ROOT)/$(THREAD_PATH) \
 				   external/stlport/stlport bionic
 
@@ -50,6 +52,7 @@ LOCAL_SRC_FILES := net/buffer.c \
 				TaskFileRecv.cpp \
 				TaskVideoSend.cpp \
 				TaskVideoRecv.cpp \
+				TaskVideoRealSend.cpp \
 				TcpClient.cpp \
 				TcpServer.cpp \
 				NativeApi.cpp

@@ -21,6 +21,8 @@ public:
 	int registerEvent(const EventArg& evarg);
 	void shutdown();
 
+	void setSurface(void*surface);
+
 	void setMaxConnections( int maxConnections );
 	void setMaxThreads( int maxThreads );
 	void setReqQueueSize( int reqQueueSize, const char * refusedMsg );

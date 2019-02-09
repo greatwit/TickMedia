@@ -22,6 +22,7 @@ typedef struct tagSid {
 } Sid_t;
 
 class TaskBase {
+
 public:
 	TaskBase( Sid_t sid );
 	TaskBase( Sid_t &sid, char*filename);

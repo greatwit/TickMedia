@@ -5,7 +5,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "TaskVideoSend.hpp"
+#include <jni.h>
+
+#include "TaskVideoRealSend.hpp"
 #include "BufferCache.hpp"
 #include "EventCall.hpp"
 
@@ -18,10 +20,63 @@
 #define  _FILE_OFFSET_BITS	64
 
 
-#define 	SEG_FRAME_COUNT 10
+#define  SEG_FRAME_COUNT 10
 
+extern JavaVM*	g_javaVM;
+extern jclass   g_mClass;
 
-	TaskVideoSend::TaskVideoSend( Session*sess, Sid_t& sid, char*filename )
+int NetWortCallback( ) {
+	jint result = -1;
+	JNIEnv*		menv;
+	jobject		mobj;
+	jclass		tmpClass;
+
+	if(NULL == g_mClass) {
+		GLOGE("g_mClass is null.");
+		return result;
+	}
+
+	if(g_javaVM)
+	{
+		result = g_javaVM->AttachCurrentThread( &menv, NULL);
+		if(NULL == menv) {
+			GLOGE("function: %s, line: %d, GetEnv failed!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+	}
+	else
+	{
+		GLOGE("function: %s, line: %d, JavaVM is null!", __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	if(NULL != g_mClass)
+	{
+		tmpClass = menv->GetObjectClass(g_mClass);
+		if(tmpClass == NULL) {
+			GLOGE("function: %s, line: %d, find class error", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+		mobj = menv->AllocObject(tmpClass);
+		if(NULL == mobj) {
+			GLOGE("function: %s, line: %d, find jobj error!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+
+		jmethodID methodID_func = menv->GetMethodID(tmpClass, "onMediaCall", "()V");//(Ljava/lang/String;I[B)
+		if(methodID_func == NULL) {
+			GLOGE("function: %s, line: %d,find method error!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+		else {
+			menv->CallVoidMethod(mobj, methodID_func);
+		}
+	}
+
+	return g_javaVM->DetachCurrentThread();
+}
+
+	TaskVideoRealSend::TaskVideoRealSend( Session*sess, Sid_t& sid, char*filename )
 				:mPackHeadLen(sizeof(NET_CMD))
 				,TaskBase(sid)
 				,mSess(sess)
@@ -40,10 +95,8 @@
 	    struct stat buf;
 	    stat(filename, &buf);
 	    mFileLen = buf.st_size;
-//		fseek( mpFile, 0, SEEK_END );
-//		mFileLen = ftell( mpFile );
-//		fseek( mpFile, 0, SEEK_END );
-//		rewind( mpFile );
+
+	    NetWortCallback();
 
 		char *lpRet   = mSendBuffer.cmmd;
 		LPNET_CMD cmd = (LPNET_CMD)lpRet;
@@ -68,7 +121,7 @@
 	}
 
 
-	TaskVideoSend::~TaskVideoSend() {
+	TaskVideoRealSend::~TaskVideoRealSend() {
 
 		if(mpFile != NULL) {
 			CloseBitstreamFile(mpFile);
@@ -79,7 +132,11 @@
 		mSendBuffer.releaseMem();
 	}
 
-	int TaskVideoSend::sendVariedCmd(int iVal) {
+	void TaskVideoRealSend::setSurface(void *surface) {
+
+	}
+
+	int TaskVideoRealSend::sendVariedCmd(int iVal) {
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
 		pCmd->dwFlag 	= NET_FLAG;
 		pCmd->dwCmd 	= iVal;
@@ -93,7 +150,7 @@
 	}
 
 	//Here further processing is needed.
-	int TaskVideoSend::writeBuffer() {
+	int TaskVideoRealSend::writeBuffer() {
 		int ret = 0;
 		if(feof(mpFile)) {
 			//mRunning = false;
@@ -130,7 +187,7 @@
 		return ret;
 	}
 
-	int TaskVideoSend::setHeartCount() {
+	int TaskVideoRealSend::setHeartCount() {
 //			mMsgQueue.push(MODULE_MSG_PING);
 //
 //			if( !mbSendingData)
@@ -142,7 +199,7 @@
 		return 0;
 	}
 
-	int TaskVideoSend::sendEx(char*data, int len) {
+	int TaskVideoRealSend::sendEx(char*data, int len) {
 		int leftLen = len, iRet = 0;
 
 		struct timeval timeout;
@@ -162,7 +219,6 @@
 				}
 				return iRet;
 			}
-
 			leftLen -= iRet;
 
 		}while(leftLen>0);
@@ -170,7 +226,7 @@
 		return len - leftLen;
 	}
 
-	int TaskVideoSend::tcpSendData()
+	int TaskVideoRealSend::tcpSendData()
 	{
 		int ret = 0;
 		if(mSendBuffer.bProcCmmd) {
@@ -199,7 +255,7 @@
 		return ret;
 	}
 
-	int TaskVideoSend::pushSendCmd(int iVal, int index) {
+	int TaskVideoRealSend::pushSendCmd(int iVal, int index) {
 		int ret = 0;
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
 		switch(iVal) {
@@ -227,7 +283,7 @@
 		return ret;
 	}
 
-	int TaskVideoSend::readBuffer() {
+	int TaskVideoRealSend::readBuffer() {
 		int ret = -1;
 		int &hasRecvLen = mRecvBuffer.hasProcLen;
 		if(mRecvBuffer.bProcCmmd) {
@@ -251,7 +307,7 @@
 		return ret;
 	}
 
-	int TaskVideoSend::recvPackData() {
+	int TaskVideoRealSend::recvPackData() {
 		int &hasRecvLen = mRecvBuffer.hasProcLen;
 		int ret = recv(mSid.mKey, mRecvBuffer.cmmd+mPackHeadLen+hasRecvLen, mRecvBuffer.totalLen-hasRecvLen, 0);
 		//GLOGE("-------------------recvPackData ret:%d\n",ret);
