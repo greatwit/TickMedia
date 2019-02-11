@@ -12,7 +12,7 @@
 
 
 #ifndef TAG
-#define TAG "NetCodec"
+#define TAG "basedef"
 #endif
 
 #define  LOGTAG true

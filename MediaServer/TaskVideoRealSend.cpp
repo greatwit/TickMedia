@@ -7,14 +7,16 @@
 
 #include <jni.h>
 
+#include "RealCameraCodec.h"
 #include "TaskVideoRealSend.hpp"
-#include "BufferCache.hpp"
 #include "EventCall.hpp"
 
 #include "event.h"
-#include "basedef.h"
 #include "protocol.h"
 #include "net_protocol.h"
+
+#define TAG "TaskVideoRealSend"
+#include "basedef.h"
 
 #undef   _FILE_OFFSET_BITS
 #define  _FILE_OFFSET_BITS	64
@@ -25,7 +27,7 @@
 extern JavaVM*	g_javaVM;
 extern jclass   g_mClass;
 
-int NetWortCallback( ) {
+int NetWortCallback( int sockId) {
 	jint result = -1;
 	JNIEnv*		menv;
 	jobject		mobj;
@@ -63,13 +65,13 @@ int NetWortCallback( ) {
 			return g_javaVM->DetachCurrentThread();
 		}
 
-		jmethodID methodID_func = menv->GetMethodID(tmpClass, "onMediaCall", "()V");//(Ljava/lang/String;I[B)
+		jmethodID methodID_func = menv->GetMethodID(tmpClass, "onMediaCall", "(I)V");//(Ljava/lang/String;I[B)
 		if(methodID_func == NULL) {
 			GLOGE("function: %s, line: %d,find method error!", __FUNCTION__, __LINE__);
 			return g_javaVM->DetachCurrentThread();
 		}
 		else {
-			menv->CallVoidMethod(mobj, methodID_func);
+			menv->CallVoidMethod(mobj, methodID_func, sockId);
 		}
 	}
 
@@ -89,14 +91,12 @@ int NetWortCallback( ) {
 	{
 		mRecvBuffer.reset();
 		mSendBuffer.reset();
-		mSendBuffer.createMem(720*1280);
 
-		mpFile = OpenBitstreamFile( filename );
-	    struct stat buf;
-	    stat(filename, &buf);
-	    mFileLen = buf.st_size;
+	    //struct stat buf;
+	    //stat(filename, &buf);
+	    mFileLen = 10000;//buf.st_size;
 
-	    NetWortCallback();
+	    NetWortCallback(sid.mKey);
 
 		char *lpRet   = mSendBuffer.cmmd;
 		LPNET_CMD cmd = (LPNET_CMD)lpRet;
@@ -123,17 +123,35 @@ int NetWortCallback( ) {
 
 	TaskVideoRealSend::~TaskVideoRealSend() {
 
-		if(mpFile != NULL) {
-			CloseBitstreamFile(mpFile);
-			mpFile = NULL;
-		}
-
 		mMsgQueue.clearQueue();
-		mSendBuffer.releaseMem();
 	}
 
 	void TaskVideoRealSend::setSurface(void *surface) {
 
+		RealCameraCodec* realCam = (RealCameraCodec*)surface;
+		realCam->setCodecCall(this);
+	}
+
+	void TaskVideoRealSend::VideoSource(VideoFrame *pBuf) {
+		int size = pBuf->length;
+		GLOGE("TaskVideoRealSend::VideoSource size:%d\n", size);
+		if(size > 0) {
+			mSendBuffer.totalLen 	= sizeof(NET_CMD) + sizeof(FILE_GET);
+			mSendBuffer.bProcCmmd 	= true;
+			LPNET_CMD	 cmd 		= (LPNET_CMD)mSendBuffer.cmmd;
+			LPFILE_GET frame 		= (LPFILE_GET)(cmd->lpData);
+			cmd->dwFlag 			= NET_FLAG;
+			cmd->dwCmd 				= MODULE_MSG_VIDEO;
+			cmd->dwIndex 			= 0;
+			//frame->dwPos 			= ftell(mpFile);
+
+			mSendBuffer.data		= (char*)pBuf->addrVirY;
+			mSendBuffer.dataLen  	= size;
+			cmd->dwLength 			= mSendBuffer.dataLen+sizeof(FILE_GET); 	//cmd incidental length
+			frame->nLength  		= mSendBuffer.dataLen;
+
+			tcpSendData();
+		}
 	}
 
 	int TaskVideoRealSend::sendVariedCmd(int iVal) {
@@ -152,15 +170,10 @@ int NetWortCallback( ) {
 	//Here further processing is needed.
 	int TaskVideoRealSend::writeBuffer() {
 		int ret = 0;
-		if(feof(mpFile)) {
-			//mRunning = false;
-			GLOGW("read file done.");
-			return 0;
-		}
 
 		if(mSendBuffer.totalLen==0) //take new data and send,totalLen is cmd len first
 		{
-				int size = GetAnnexbNALU(mpFile, mSendBuffer.data);//每执行一次，文件的指针指向本次找到的NALU的末尾，下一个位置即为下个NALU的起始码0x000001
+				int size = 0;//GetAnnexbNALU(mpFile, mSendBuffer.data);//每执行一次，文件的指针指向本次找到的NALU的末尾，下一个位置即为下个NALU的起始码0x000001
 				GLOGE("GetAnnexbNALU size:%d\n", size);
 
 				if(size>0) {
@@ -171,7 +184,7 @@ int NetWortCallback( ) {
 					cmd->dwFlag 			= NET_FLAG;
 					cmd->dwCmd 				= MODULE_MSG_VIDEO;
 					cmd->dwIndex 			= 0;
-					frame->dwPos 			= ftell(mpFile);
+					//frame->dwPos 			= ftell(mpFile);
 
 					mSendBuffer.dataLen  	= size;
 					cmd->dwLength 			= mSendBuffer.dataLen+sizeof(FILE_GET); 	//cmd incidental length
@@ -238,19 +251,29 @@ int NetWortCallback( ) {
 
 			if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
 					mSendBuffer.setToVideo();
+
+					ret = sendEx((char*)mSendBuffer.data+mSendBuffer.hasProcLen, mSendBuffer.totalLen-mSendBuffer.hasProcLen);
+					if(ret>0)
+						mSendBuffer.hasProcLen += ret;
+					else
+						GLOGE("tcpSendData dta errno:%d ret:%d .\n", errno, ret);
+
+					if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
+						mSendBuffer.reset();
+					}
 			}
 		}
 		else//data
 		{
-			ret = sendEx((char*)mSendBuffer.data->buf+mSendBuffer.hasProcLen, mSendBuffer.totalLen-mSendBuffer.hasProcLen);
-			if(ret>0)
-				mSendBuffer.hasProcLen += ret;
-			else
-				GLOGE("tcpSendData dta errno:%d ret:%d .\n", errno, ret);
-
-			if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
-				mSendBuffer.reset();
-			}
+//			ret = sendEx((char*)mSendBuffer.data+mSendBuffer.hasProcLen, mSendBuffer.totalLen-mSendBuffer.hasProcLen);
+//			if(ret>0)
+//				mSendBuffer.hasProcLen += ret;
+//			else
+//				GLOGE("tcpSendData dta errno:%d ret:%d .\n", errno, ret);
+//
+//			if(mSendBuffer.hasProcLen == mSendBuffer.totalLen) {
+//				mSendBuffer.reset();
+//			}
 		}
 		return ret;
 	}
@@ -322,26 +345,26 @@ int NetWortCallback( ) {
 				if(pCmdbuf->dwCmd == MODULE_MSG_CONTROL_PLAY) {
 					PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"name", acValue, &lValueLen);
 					GLOGE("recv control commond acValue:%s\n",acValue);
-					if (strcmp(acValue, "start") == 0) {
-						memset(acValue, 0, 256);
-						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"tmstart", acValue, &lValueLen);
-						GLOGE("tmstart:%d\n",atoi(acValue));
-
-						memset(acValue, 0, 256);
-						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"tmend", acValue, &lValueLen);
-						GLOGE("tmend:%d\n",atoi(acValue));
-						EventCall::addEvent( mSess, EV_WRITE, -1 );
-					}
-					else if(strcmp(acValue, "setpause") == 0) {
-						memset(acValue, 0, 256);
-						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"value", acValue, &lValueLen);
-						int value = atoi(acValue);
-						GLOGE("control setpause value:%d\n", value);
-					}
-					else if(strcmp(acValue, "send") == 0) {
-						mbSendingData = true;
-						EventCall::addEvent( mSess, EV_WRITE, -1 );
-					}
+//					if (strcmp(acValue, "start") == 0) {
+//						memset(acValue, 0, 256);
+//						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"tmstart", acValue, &lValueLen);
+//						GLOGE("tmstart:%d\n",atoi(acValue));
+//
+//						memset(acValue, 0, 256);
+//						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"tmend", acValue, &lValueLen);
+//						GLOGE("tmend:%d\n",atoi(acValue));
+//						EventCall::addEvent( mSess, EV_WRITE, -1 );
+//					}
+//					else if(strcmp(acValue, "setpause") == 0) {
+//						memset(acValue, 0, 256);
+//						PROTO_GetValueByName(mRecvBuffer.cmmd, (char*)"value", acValue, &lValueLen);
+//						int value = atoi(acValue);
+//						GLOGE("control setpause value:%d\n", value);
+//					}
+//					else if(strcmp(acValue, "send") == 0) {
+//						mbSendingData = true;
+//						EventCall::addEvent( mSess, EV_WRITE, -1 );
+//					}
 				}
 			    //GLOGE("recv total:%s", mRecvBuffer.buff);
 

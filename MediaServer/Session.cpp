@@ -66,20 +66,12 @@ SessionManager :: ~SessionManager()
 	memset( mArray, 0, sizeof( mArray ) );
 }
 
-void SessionManager :: setSurface(void*surface) {
+void SessionManager :: setRealView(int sockId, void*surface) {
 
-	for( int i = 0; i < (int)( sizeof( mArray ) / sizeof( mArray[0] ) ); i++ ) {
-		SessionEntry_t * list = mArray[ i ];
-		if( NULL != list ) {
-			SessionEntry_t * iter = list;
-			for( int i = 0; i < 1024; i++, iter++ ) {
-				if( NULL != iter->mSession ) {
-					Session*sess = iter->mSession;
-					sess->setSurface(surface);
-				}
-			}
-		}
-	}
+	uint16_t seq  = 0;
+	Session* sess = get( sockId, &seq );
+	if(sess)
+		sess->setSurface(surface);
 }
 
 int SessionManager :: getCount()
@@ -220,6 +212,40 @@ Session :: Session( Sid_t sid, short type, char*filepath)
 	}
 }
 
+Session :: Session( Sid_t sid, short type, void*surface)
+			:mHeadLenConst(sizeof(NET_HEAD))
+			,mSid(sid)
+			,mTaskBase(NULL)
+			,mArg(NULL)
+			,mTotalDataLen(0)
+			,mHasRecvLen(0)
+			,mbRecvHead(true)
+{
+	mReadEvent  = (struct event*)malloc( sizeof( struct event ) );
+	mWriteEvent = (struct event*)malloc( sizeof( struct event ) );
+	mTimeEvent	= (struct event*)malloc( sizeof( struct event ) );
+
+	mStatus  	= eNormal;
+	mRunning 	= 0;
+	mWriting 	= 0;
+	mReading 	= 0;
+	switch(type) {
+		case VIDEO_RECV_MSG:
+			if(!mTaskBase) {
+				mTaskBase = new TaskVideoRecv( this, mSid );
+				#ifdef __ANDROID__
+					TaskVideoRecv *temp = (TaskVideoRecv*)mTaskBase;
+					temp->setBase(new VideoDecoder(surface));
+				#endif
+			}
+			break;
+
+		case FILE_RECV_MSG:
+				mTaskBase = new TaskFileRecv( this, mSid );
+			break;
+	}
+}
+
 Session :: Session( Sid_t sid, short type, char*filepath, void*surface)
 			:mHeadLenConst(sizeof(NET_HEAD))
 			,mSid(sid)
@@ -306,14 +332,14 @@ Session :: ~Session()
 }
 
 void Session :: setSurface(void *surface) {
-#ifdef __ANDROID__
-	if(typeid(TaskVideoRealSend)==typeid(*mTaskBase)) {
-		TaskVideoRealSend * realTast = (TaskVideoRealSend*)mTaskBase;
-		realTast->setSurface(surface);
+	#ifdef __ANDROID__
+		if(typeid(TaskVideoRealSend)==typeid(*mTaskBase)) {
+			TaskVideoRealSend * realTast = (TaskVideoRealSend*)mTaskBase;
+			realTast->setSurface(surface);
 
-		GLOGE("TaskVideoRealSend setSurface\n");
-	}
-#endif
+			GLOGE("TaskVideoRealSend setSurface\n");
+		}
+	#endif
 }
 
 int Session :: setHeartBeat() {
@@ -413,9 +439,9 @@ int Session ::recvPackData() {
 					mTaskBase = new TaskFileSend( this, mSid, acValue );
 					break;
 				case 2:
-#ifdef __ANDROID__
+		#ifdef __ANDROID__
 					mTaskBase = new TaskVideoRealSend( this, mSid, acValue );
-#endif
+		#endif
 					break;
 			}
 			mTotalDataLen = 0;

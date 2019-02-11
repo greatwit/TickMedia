@@ -37,6 +37,8 @@ LOCAL_SRC_FILES := net/buffer.c \
 				net/net_protocol.c \
 				$(THREAD_PATH)/gthreadpool.cpp \
 				$(NAREDEC_PATH)/NALDecoder.cpp \
+				$(CAMERA_PATH)/CameraContext.cpp \
+				$(CAMERA_PATH)/RealCameraCodec.cpp \
 				$(CODEC_PATH)/VideoBase.cpp \
 				$(CODEC_PATH)/VideoDecoder.cpp \
 				$(MCNDK_PATH)/mediacodec_ndk.c \

@@ -30,10 +30,11 @@ class TaskVideoRealSend : public TaskBase, public IVideoCallback{
 
 		int sendVariedCmd(int iVal);
 
+		void VideoSource(VideoFrame *pBuf);
+
 	private:
 		struct tagRecvBuffer 		mRecvBuffer;
-		struct tagNALSendBuffer 	mSendBuffer;
-		FILE						*mpFile;
+		struct tagRealSendBuffer 	mSendBuffer;
 		Session						*mSess;
 		GQueue<int>					mMsgQueue;
 

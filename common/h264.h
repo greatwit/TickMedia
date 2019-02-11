@@ -211,6 +211,44 @@ struct tagFileProcBuffer {
 	}
 };
 
+struct tagRealSendBuffer {
+	char cmmd[CMD_LEN];
+	bool bProcCmmd;
+	int  hasProcLen;
+	int  totalLen;	//1500 is cmd len
+	int  dataLen;
+	char*data;
+
+	tagRealSendBuffer() {
+		data 		= NULL;
+		totalLen 	= 0;
+		dataLen 	= 0;
+		hasProcLen 	= 0;
+		bProcCmmd 	= true;
+	}
+
+	void reset() {
+		//std::lock_guard<std::mutex> lk(mut);
+		memset(cmmd, 0, CMD_LEN);
+		if(data) {
+		}
+		hasProcLen 	= 0;
+		totalLen 	= 0;
+		dataLen		= 0;
+		bProcCmmd 	= true;
+	}
+
+	bool isSendVideo() {
+		return bProcCmmd==false;
+	}
+
+	void setToVideo() {
+		bProcCmmd	= false;
+		hasProcLen 	= 0;
+		totalLen 	= dataLen;
+	}
+};
+
 struct tagNALSendBuffer {
 	char cmmd[CMD_LEN];
 	bool bProcCmmd;

@@ -9,7 +9,11 @@
 
 #include "event.h"
 #include "h264.h"
+
+
+#define TAG "TaskVideoRecv"
 #include "basedef.h"
+
 
 #ifdef 	__ANDROID__
 #define	FILE_PATH	"/sdcard/w.h264"
@@ -32,6 +36,8 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 		mSendBuffer.reset();
 		mRecvBuffer.reset();
 		mRecvBuffer.createMem(BUFFER_LEN);
+
+		//mwFile = fopen("real.h264", "w");
 
 		LPNET_CMD	pCmd = (LPNET_CMD)mSendBuffer.cmmd;
 		int nLength = sprintf(pCmd->lpData, "<play real=\"%s\"/>", "/sdcard/ModuleTest/720p.h264");

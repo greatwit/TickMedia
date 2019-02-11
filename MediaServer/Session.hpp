@@ -18,7 +18,8 @@ public:
 	Session( Sid_t sid );
 	Session( Sid_t sid, short type);
 	Session( Sid_t sid, short type, char*filepath);
-	Session( Sid_t sid, short type, char*filepath, void*surface);
+	Session( Sid_t sid, short type, void*surface);//real show
+	Session( Sid_t sid, short type, char*filepath, void*surface); //get h264 show
 	Session( Sid_t sid, short type, char*remoteFile, char*saveFile);
 	virtual ~Session();
 
@@ -92,7 +93,7 @@ public:
 	SessionManager();
 	~SessionManager();
 
-	void setSurface(void*surface);
+	void setRealView(int sockId, void*surface);
 
 	int getCount();
 	void put( uint16_t key, Session * session, uint16_t * seq );

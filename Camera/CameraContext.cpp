@@ -3,13 +3,9 @@
 #include <dlfcn.h>
 #include <sys/system_properties.h>
 
-#include "CameraContext.h"
-
-#include "ComDefine.h"
 #define TAG "CameraContext"
-
-//namespace android
-//{
+#include "basedef.h"
+#include "CameraContext.h"
 
 	CameraContext* CameraContext::mSelf = NULL;
 
@@ -114,6 +110,5 @@
 		return mLibHandle==NULL;
 	}
 
-//}
 
 

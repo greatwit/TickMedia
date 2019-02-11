@@ -91,11 +91,11 @@ void TcpServer :: shutdown() {
 	}
 }
 
-void TcpServer :: setSurface(void*surface) {
+void TcpServer :: setRealView(int sockId, void*surface) {
 	if(mAcceptArg.mEventArg) {
 		EventArg *arg = mAcceptArg.mEventArg;
 		SessionManager * manager = arg->getSessionManager();
-		manager->setSurface(surface);
+		manager->setRealView(sockId, surface);
 	}
 }
 

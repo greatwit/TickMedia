@@ -51,6 +51,17 @@ int TcpClient :: connect(const char* destIp, unsigned short destPort, const char
 	return ret;
 }
 
+int TcpClient :: connect(const char* destIp, unsigned short destPort, void *surface) {
+	int ret = IOUtils::tcpConnect(destIp, destPort, &mSockId, 0);
+	GLOGW("connect ret:%d sockid:%d.\n",ret, mSockId);
+	if(ret>=0) {
+		mSid.mKey = mSockId;
+		IOUtils::setNonblock( mSockId );
+		mSession = new Session( mSid, VIDEO_RECV_MSG, surface );
+	}
+	return ret;
+}
+
 int TcpClient :: connect(const char* destIp, unsigned short destPort, const char*filepath, void *surface) {
 	int ret = IOUtils::tcpConnect(destIp, destPort, &mSockId, 0);
 	GLOGW("connect ret:%d sockid:%d.\n",ret, mSockId);

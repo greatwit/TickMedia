@@ -21,7 +21,7 @@ public:
 	int registerEvent(const EventArg& evarg);
 	void shutdown();
 
-	void setSurface(void*surface);
+	void setRealView(int sockId, void*surface);
 
 	void setMaxConnections( int maxConnections );
 	void setMaxThreads( int maxThreads );

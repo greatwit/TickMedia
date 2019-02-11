@@ -2,6 +2,7 @@
 #include "ActorStation.hpp"
 #include "TcpClient.hpp"
 #include "TcpServer.hpp"
+#include "RealCameraCodec.h"
 
 #include <jni.h>
 #include "basedef.h"
@@ -16,9 +17,9 @@ jclass 		 g_mClass		= NULL;
 ActorStation mStatiion;
 TcpClient	 *mpClient		= NULL;
 TcpServer	 *mpServer		= NULL;
+RealCameraCodec *gRealCam   = NULL;
 
-
-/////////////////////////////////////////////////////Server////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////Server and real view////////////////////////////////////////////////////////
 
 static jboolean StartNetWork(JNIEnv *env, jobject) {
 	if(mStatiion.isRunning() == 0) {
@@ -59,15 +60,74 @@ static jboolean StopServer(JNIEnv *env, jobject)
 	return true;
 }
 
-static jboolean SetServerSurface(JNIEnv *env, jobject, jobject surface)
+static jboolean StartRealView(JNIEnv *env, jobject, jint sessionId)
 {
-	if(mpServer!=NULL) {
-		ANativeWindow *pAnw = ANativeWindow_fromSurface(env, surface);
-		mpServer->setSurface(pAnw);
+	if(mpServer && gRealCam) {
+
+		mpServer->setRealView(sessionId, gRealCam);
 		return true;
 	}
 	return false;
 }
+
+//seven api
+static jboolean StartRealCamCodec(JNIEnv *env, jobject, jobject surface) {
+	bool ret = true;
+	if(gRealCam==NULL)
+		gRealCam = new RealCameraCodec();
+
+	ANativeWindow *pAnw = ANativeWindow_fromSurface(env, surface);
+
+	gRealCam->startPlayer(pAnw, 0, 0);
+
+	return ret;
+}
+
+static jboolean StopRealCamCodec(JNIEnv *env, jobject) {
+	bool ret = true;
+	if(gRealCam) {
+		gRealCam->stopPlayer();
+		delete gRealCam;
+		gRealCam = NULL;
+	}
+	return ret;
+}
+
+static void SetRealCameraParam(JNIEnv *env, jobject, jstring params) {
+	gRealCam->SetCameraParameter(params);
+}
+
+static jstring GetRealCameraParam(JNIEnv *env, jobject) {
+	return gRealCam->GetCameraParameter();
+}
+
+static jboolean RealCodecSetInt32(JNIEnv *env, jobject, jstring key, jint value) {
+	jboolean isOk  = JNI_FALSE;
+
+	const char *ck = env->GetStringUTFChars(key, &isOk);
+	gRealCam->setInt32(ck, value);
+	env->ReleaseStringUTFChars(key, ck);
+
+	return true;
+}
+
+static jboolean OpenRealCamera(JNIEnv *env, jobject, jint cameraId, jstring clientName) {
+	if(gRealCam==NULL)
+		gRealCam = new RealCameraCodec();
+
+	gRealCam->openCamera(cameraId, clientName);
+
+	return true;
+}
+
+static jboolean CloseRealCamera(JNIEnv *env, jobject) {
+	if(gRealCam) {
+		gRealCam->closeCamera();
+	}
+
+	return true;
+}
+
 
 ////////////////////////////////////////////client/////////////////////////////////////////////////////
 
@@ -112,7 +172,32 @@ static jboolean StopFileRecv(JNIEnv *env, jobject)
 
 //-----------------------------------------------------------------video client---------------------------------------------------------------------------------
 
-static jboolean StartVideoView(JNIEnv *env, jobject, jstring destip, jint destport, jstring remoteFile, jobject surface)//ip port remotefile surface
+static jboolean StartRealVideoRecv(JNIEnv *env, jobject, jstring destip, jint destport, jobject surface)//ip port remotefile surface
+{
+	int ret = 0;
+	if(mpClient==NULL) {
+
+		jboolean isOk = JNI_FALSE;
+		const char *ip 		= env->GetStringUTFChars(destip, &isOk);
+		ANativeWindow *pAnw = ANativeWindow_fromSurface(env, surface);
+		mpClient = new TcpClient();
+		ret = mpClient->connect( ip, destport, pAnw );
+
+		if(ret < 0) {
+			delete mpClient;
+			mpClient = NULL;
+			return false;
+		}
+
+		mpClient->registerEvent(mStatiion.getEventArg());
+		env->ReleaseStringUTFChars(destip, ip);
+
+		return true;
+	}
+	return false;
+}
+
+static jboolean StartFileVideoRecv(JNIEnv *env, jobject, jstring destip, jint destport, jstring remoteFile, jobject surface)//ip port remotefile surface
 {
 	int ret = 0;
 	if(mpClient==NULL) {
@@ -139,7 +224,7 @@ static jboolean StartVideoView(JNIEnv *env, jobject, jstring destip, jint destpo
 	return false;
 }
 
-static jboolean StopVideoView(JNIEnv *env, jobject)
+static jboolean StopVideoRecv(JNIEnv *env, jobject)
 {
 	if(mpClient!=NULL){
 		mpClient->disConnect();
@@ -155,12 +240,22 @@ static JNINativeMethod video_method_table[] = {
 		{"StopNetWork", "()Z", (void*)StopNetWork },
 		{"StartServer", "(Ljava/lang/String;I)Z", (void*)StartServer },
 		{"StopServer", "()Z", (void*)StopServer },
-		{"SetServerSurface", "(Landroid/view/Surface;)Z", (void*)SetServerSurface },
+		{"StartRealView", "(I)Z", (void*)StartRealView },
+
+		{ "StartRealCamCodec", "(Landroid/view/Surface;)Z", (void *)StartRealCamCodec },
+		{ "StopRealCamCodec", "()Z", (void *)StopRealCamCodec },
+		{ "SetRealCameraParam", "(Ljava/lang/String;)V", (void *)SetRealCameraParam },
+		{ "GetRealCameraParam", "()Ljava/lang/String;", (void *)GetRealCameraParam },
+		{ "RealCodecSetInt32", "(Ljava/lang/String;I)Z", (void*)RealCodecSetInt32 },
+		{ "OpenRealCamera", "(ILjava/lang/String;)Z", (void *)OpenRealCamera },
+		{ "CloseRealCamera", "()Z", (void *)CloseRealCamera },
+
 
 		{"StartFileRecv", "(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)Z", (void*)StartFileRecv },
 		{"StopFileRecv", "()Z", (void*)StopFileRecv },
-		{"StartVideoView", "(Ljava/lang/String;ILjava/lang/String;Landroid/view/Surface;)Z", (void*)StartVideoView },
-		{"StopVideoView", "()Z", (void*)StopVideoView },
+		{"StartRealVideoRecv", "(Ljava/lang/String;ILandroid/view/Surface;)Z", (void*)StartRealVideoRecv },
+		{"StartFileVideoRecv", "(Ljava/lang/String;ILjava/lang/String;Landroid/view/Surface;)Z", (void*)StartFileVideoRecv },
+		{"StopVideoRecv", "()Z", (void*)StopVideoRecv },
 };
 
 int registerNativeMethods(JNIEnv* env, const char* className, JNINativeMethod* methods, int numMethods)
