@@ -8,12 +8,14 @@
 #include <jni.h>
 
 #include "RealCameraCodec.h"
+#include "UpperNdkEncodec.h"
 #include "TaskVideoRealSend.hpp"
 #include "EventCall.hpp"
 
 #include "event.h"
 #include "protocol.h"
 #include "net_protocol.h"
+
 
 #define TAG "TaskVideoRealSend"
 #include "basedef.h"
@@ -128,7 +130,8 @@ int NetWortCallback( int sockId) {
 
 	void TaskVideoRealSend::setSurface(void *surface) {
 
-		RealCameraCodec* realCam = (RealCameraCodec*)surface;
+		//RealCameraCodec* realCam = (RealCameraCodec*)surface;
+		UpperNdkEncodec* realCam = (UpperNdkEncodec*)surface;
 		realCam->setCodecCall(this);
 	}
 

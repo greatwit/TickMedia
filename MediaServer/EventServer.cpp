@@ -28,12 +28,15 @@ int main( int argc, char * argv[] )
 			case 'p' :
 				port = atoi( optarg );
 				break;
+
 			case 't' :
 				maxThreads = atoi( optarg );
 				break;
+
 			case 's' :
 				//serverType = optarg;
 				break;
+
 			case '?' :
 			case 'v' :
 				printf( "Usage: %s [-p <port>] [-t <threads>] [-s <hahs|lf>]\n", argv[0] );
