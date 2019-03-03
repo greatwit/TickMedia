@@ -10,9 +10,11 @@
 #include "EventCall.hpp"
 
 #include "event.h"
-#include "basedef.h"
 #include "protocol.h"
 #include "net_protocol.h"
+
+#define TAG "TaskFileSend"
+#include "basedef.h"
 
 #undef   _FILE_OFFSET_BITS
 #define  _FILE_OFFSET_BITS	64
@@ -132,7 +134,7 @@
 				mHasReadLen 			+= mSendBuffer.dataLen;
 
 				mFrameCount++;
-				GLOGE("fread data len:%d pos:%d cmd mFrameCount:%d\n", mSendBuffer.dataLen, frame->dwPos, mFrameCount);
+				GLOGE("fread data len:%d mHasReadLen:%d cmd mFrameCount:%d\n", mSendBuffer.dataLen, mHasReadLen, mFrameCount);
 			}
 			else{
 				ret = pushSendCmd(MODULE_MSG_DATAEND);

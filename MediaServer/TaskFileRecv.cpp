@@ -9,6 +9,8 @@
 
 #include "event.h"
 #include "h264.h"
+
+#define TAG "TaskFileRecv"
 #include "basedef.h"
 
 #ifdef 	__ANDROID__
@@ -17,6 +19,65 @@
 #define	FILE_PATH	"recv.mp4"
 #endif
 
+#ifdef 	__ANDROID__
+
+#include <jni.h>
+
+extern JavaVM*	g_javaVM;
+extern jclass   g_mClass;
+
+int FileRecvCallback( int sockId, int command, int fileLen ) {
+	jint result = -1;
+	JNIEnv*		menv;
+	jobject		mobj;
+	jclass		tmpClass;
+
+	if(NULL == g_mClass) {
+		GLOGE("g_mClass is null.");
+		return result;
+	}
+
+	if(g_javaVM)
+	{
+		result = g_javaVM->AttachCurrentThread( &menv, NULL);
+		if(NULL == menv) {
+			GLOGE("function: %s, line: %d, GetEnv failed!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+	}
+	else
+	{
+		GLOGE("function: %s, line: %d, JavaVM is null!", __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	if(NULL != g_mClass)
+	{
+		tmpClass = menv->GetObjectClass(g_mClass);
+		if(tmpClass == NULL) {
+			GLOGE("function: %s, line: %d, find class error", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+		mobj = menv->AllocObject(tmpClass);
+		if(NULL == mobj) {
+			GLOGE("function: %s, line: %d, find jobj error!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+
+		jmethodID methodID_func = menv->GetMethodID(tmpClass, "onFileState", "(III)V");// sockid command length
+		if(methodID_func == NULL) {
+			GLOGE("function: %s, line: %d,find method error!", __FUNCTION__, __LINE__);
+			return g_javaVM->DetachCurrentThread();
+		}
+		else {
+			menv->CallVoidMethod(mobj, methodID_func, sockId, command, fileLen);
+		}
+	}
+
+	return g_javaVM->DetachCurrentThread();
+}
+
+#endif
 
 	TaskFileRecv::TaskFileRecv( Session*sess, Sid_t &sid )
 				:mPackHeadLen(sizeof(NET_CMD))
@@ -169,10 +230,24 @@
 					hasRecvLen = 0;
 
 					GLOGE("playback flag:%08x totalLen:%d ret:%d\n", head->dwFlag, mRecvBuffer.totalLen, ret);
-					ret = recvPackData();
-				}
+
+					if(head->dwLength>0) {
+						ret = recvPackData();
+					}
+					else
+					{
+						switch(head->dwCmd) {
+							case MODULE_MSG_DATAEND:
+#ifdef 	__ANDROID__
+						FileRecvCallback(mSid.mKey, 0, 0);
+#endif
+								GLOGW("MODULE_MSG_DATAEND\n");
+								break;
+						}
+					}
+				}//==
 			}
-		}//
+		}//bProcCmmd
 		else{
 			ret = recvPackData();
 		}
@@ -204,7 +279,11 @@
 					case MODULE_MSG_VIDEO:
 						lpFrame 		= (LPFILE_GET)(pCmdbuf->lpData);
 						fwrite(lpFrame->lpData , 1 , lpFrame->nLength , mwFile);
+						fflush(mwFile);
 						GLOGW("frame len:%d\n", lpFrame->nLength);
+#ifdef 	__ANDROID__
+						FileRecvCallback(mSid.mKey, 1, lpFrame->nLength);
+#endif
 						break;
 
 					case MODULE_MSG_LOGINRET:
@@ -217,6 +296,10 @@
 						char szCmd[100];
 						int len = sprintf(szCmd, "<control name=\"start\" tmstart=\"%d\" tmend=\"%d\" />", 0, mTotalLen);
 						SendCmd(MODULE_MSG_CONTROL_PLAY, 0, szCmd,len + 1);
+
+#ifdef 	__ANDROID__
+						FileRecvCallback(mSid.mKey, 2, mTotalLen);
+#endif
 						break;
 				}
 
