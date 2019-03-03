@@ -3,6 +3,7 @@
 #include "TcpClient.hpp"
 #include "TcpServer.hpp"
 #include "RealCameraCodec.h"
+#include "UpperNdkEncodec.h"
 
 #include <jni.h>
 #include "basedef.h"
@@ -18,6 +19,7 @@ ActorStation mStatiion;
 TcpClient	 *mpClient		= NULL;
 TcpServer	 *mpServer		= NULL;
 RealCameraCodec *gRealCam   = NULL;
+UpperNdkEncodec *gUpcamEnc	= NULL;
 
 /////////////////////////////////////////////////////Server and real view////////////////////////////////////////////////////////
 
@@ -59,6 +61,62 @@ static jboolean StopServer(JNIEnv *env, jobject)
 	}
 	return true;
 }
+
+///////////////////////////////////////////////////////upper cam//////////////////////////////////////
+
+static jboolean SetUpcamEncView(JNIEnv *env, jobject, jint sessionId)
+{
+	if(mpServer && gRealCam) {
+
+		mpServer->setRealView(sessionId, gUpcamEnc);
+		return true;
+	}
+	return false;
+}
+
+static jboolean StartUpcamEncodec(JNIEnv *env, jobject) {
+	bool ret = true;
+	if(gUpcamEnc==NULL)
+		gUpcamEnc = new UpperNdkEncodec();
+
+	gUpcamEnc->startPlayer(0, 0);
+
+	GLOGW("StartCamndkEncodec \n");
+
+	return ret;
+}
+
+static jboolean StopUpcamEncodec(JNIEnv *env, jobject) {
+	bool ret = true;
+	if(gUpcamEnc) {
+		gUpcamEnc->stopPlayer();
+		delete gUpcamEnc;
+		gUpcamEnc = NULL;
+	}
+	return ret;
+}
+
+static jboolean UpcamEncSetInt32(JNIEnv *env, jobject, jstring key, jint value) {
+	jboolean isOk  = JNI_FALSE;
+	if(gUpcamEnc==NULL)
+		gUpcamEnc = new UpperNdkEncodec();
+
+	const char *ck = env->GetStringUTFChars(key, &isOk);
+	gUpcamEnc->setInt32(ck, value);
+	env->ReleaseStringUTFChars(key, ck);
+	return true;
+}
+
+static jboolean UpcamEncProvide(JNIEnv* env, jobject, jbyteArray javaCameraFrame, jint length) {
+
+	jbyte* cameraFrame = env->GetByteArrayElements(javaCameraFrame, NULL);
+	gUpcamEnc->ProvideNV21Data(reinterpret_cast<uint8_t*>(cameraFrame), length);
+	env->ReleaseByteArrayElements(javaCameraFrame, cameraFrame, JNI_ABORT);
+
+	return true;
+}
+
+///////////////////////////////////////////////////////native cam//////////////////////////////////////
 
 static jboolean StartRealView(JNIEnv *env, jobject, jint sessionId)
 {
@@ -240,8 +298,14 @@ static JNINativeMethod video_method_table[] = {
 		{"StopNetWork", "()Z", (void*)StopNetWork },
 		{"StartServer", "(Ljava/lang/String;I)Z", (void*)StartServer },
 		{"StopServer", "()Z", (void*)StopServer },
-		{"StartRealView", "(I)Z", (void*)StartRealView },
 
+		{"SetUpcamEncView", "(I)Z", (void*)SetUpcamEncView },
+		{"StartUpcamEncodec", "()Z", (void*)StartUpcamEncodec },
+		{"StopUpcamEncodec", "()Z", (void*)StopUpcamEncodec },
+		{ "UpcamEncSetInt32", "(Ljava/lang/String;I)Z", (void*)UpcamEncSetInt32 },
+		{ "UpcamEncProvide", "([BI)Z", (void *)UpcamEncProvide },
+
+		{"StartRealView", "(I)Z", (void*)StartRealView },
 		{ "StartRealCamCodec", "(Landroid/view/Surface;)Z", (void *)StartRealCamCodec },
 		{ "StopRealCamCodec", "()Z", (void *)StopRealCamCodec },
 		{ "SetRealCameraParam", "(Ljava/lang/String;)V", (void *)SetRealCameraParam },
@@ -249,6 +313,7 @@ static JNINativeMethod video_method_table[] = {
 		{ "RealCodecSetInt32", "(Ljava/lang/String;I)Z", (void*)RealCodecSetInt32 },
 		{ "OpenRealCamera", "(ILjava/lang/String;)Z", (void *)OpenRealCamera },
 		{ "CloseRealCamera", "()Z", (void *)CloseRealCamera },
+
 
 
 		{"StartFileRecv", "(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)Z", (void*)StartFileRecv },

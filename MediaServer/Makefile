@@ -16,7 +16,7 @@ CFLAGS   += -I./ -I./net -I../common
 CXXFLAGS += $(COMPLIE_INCL)
 LDFLAGS  += $(COMPLIE_LIB) -lpthread
 
-TARGET = ServerEvent ClientEvent
+TARGET = ServerEvent ClientEvent librealserver.a
 
 #--------------------------------------------------------------------
 
@@ -26,6 +26,9 @@ OBJECTS = net/buffer.o net/epoll.o net/epoll_sub.o net/event.o net/evbuffer.o ne
 		  BufferCache.o DataUtils.o IOUtils.o Session.o EventCall.o  ActorStation.o \
 		  TaskBase.o TaskVideoRecv.o TaskVideoSend.o TaskFileSend.o TaskFileRecv.o \
 		  $(CODEC_PATH)/VideoBase.o $(THREAD_PATH)/gthreadpool.o $(NAREDEC_PATH)/NALDecoder.o
+
+librealserver.a: $(OBJECTS)
+	 $(AR) rs $@ $?
 
 EventServer=$(OBJECTS) EventServer.o TcpServer.o
 EventClient=$(OBJECTS) EventClient.o TcpClient.o

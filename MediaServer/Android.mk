@@ -41,6 +41,7 @@ LOCAL_SRC_FILES := net/buffer.c \
 				$(CAMERA_PATH)/RealCameraCodec.cpp \
 				$(CODEC_PATH)/VideoBase.cpp \
 				$(CODEC_PATH)/VideoDecoder.cpp \
+				$(CODEC_PATH)/UpperNdkEncodec.cpp \
 				$(MCNDK_PATH)/mediacodec_ndk.c \
 				$(MCNDK_PATH)/mediaextrator_ndk.c \
 				ActorStation.cpp \

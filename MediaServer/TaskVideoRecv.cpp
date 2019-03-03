@@ -162,7 +162,7 @@ const int	 BUFFER_LEN  = 1024*1024+1500;
 			return iRet;
 		}
 
-		GLOGW("send head len:%d \n", sizeof(nc));
+		GLOGW("send head len:%u \n", sizeof(nc));
 		if (nLength == 0)
 		{
 			return 0;
