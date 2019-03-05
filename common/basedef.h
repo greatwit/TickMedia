@@ -82,7 +82,7 @@ typedef unsigned long DWORD;
 #endif
 
 #ifndef FILE_BUFFER_LEN
-static const int	FILE_MEMORY_LEN  	= 512*1024;//512k 1m
+static const int	FILE_MEMORY_LEN  	= 1024*1024;//512k 1m
 #endif
 
 
