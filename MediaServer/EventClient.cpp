@@ -17,11 +17,11 @@
 #define PORT 31000
 
 void usage(char*exename) {
-	printf("Usage: %s -v filepath\n -f remotefile savefile", exename);
+	printf("Usage: %s -v filepath\n -f remotefile savefile\n", exename);
 }
 
 //#define IPADDR "127.0.0.1"
-#define IPADDR "192.168.1.107"
+#define IPADDR "192.168.1.103"
 
 int main( int argc, char * argv[] )
 {

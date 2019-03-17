@@ -85,14 +85,23 @@ int TcpClient :: connect(const char* destIp, unsigned short destPort, const char
 }
 
 int TcpClient :: disConnect() {
-	if(mSockId > 0) {
-		EventArg * eventArg = (EventArg*)mSession->getArg();
-		eventArg->getSessionManager()->remove(mSockId);
-		event_del(mSession->getReadEvent());
-		event_del(mSession->getReadEvent());
+	if(mSockId > 0 && mSession) {
 
-		close(mSockId);
-		mSockId = 0;
+		EventArg * eventArg = (EventArg*)mSession->getArg();
+
+		SessionManager *manager = eventArg->getSessionManager();
+
+		uint16_t seq;
+		if(manager->get(mSockId, &seq)) {
+			GLOGW("disconnect begin\n");
+			manager->remove(mSockId);
+			event_del(mSession->getReadEvent());
+			event_del(mSession->getReadEvent());
+			event_del(mSession->getTimeEvent());
+			close(mSockId);
+			mSockId = 0;
+			GLOGW("disconnect remove session id:%d\n", mSockId);
+		}
 		GLOGW("disConnect sockid:%d.\n", mSockId);
 	}
 	return 0;

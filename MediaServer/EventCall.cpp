@@ -188,16 +188,16 @@ void EventCall :: onRead( int fd, short events, void * arg )
 		int ret = session->readBuffer();
 		if(ret==0)
 		{
-				EventArg * eventArg = (EventArg*)session->getArg();
-				eventArg->getSessionManager()->remove( fd );
-				event_del( session->getReadEvent() );
-				event_del( session->getWriteEvent() );
-				event_del( session->getTimeEvent() );
-
-				delete session;
-				session = NULL;
-
-				close( fd );
+//				EventArg * eventArg = (EventArg*)session->getArg();
+//				eventArg->getSessionManager()->remove( fd );
+//				event_del( session->getReadEvent() );
+//				event_del( session->getWriteEvent() );
+//				event_del( session->getTimeEvent() );
+//
+//				delete session;
+//				session = NULL;
+//
+//				close( fd );
 
 				GLOGE("read zero:%d\n",ret);
 

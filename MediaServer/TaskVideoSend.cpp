@@ -18,7 +18,7 @@
 #define  _FILE_OFFSET_BITS	64
 
 
-#define 	SEG_FRAME_COUNT 10
+//#define 	SEG_FRAME_COUNT 10
 
 
 	TaskVideoSend::TaskVideoSend( Session*sess, Sid_t& sid, char*filename )

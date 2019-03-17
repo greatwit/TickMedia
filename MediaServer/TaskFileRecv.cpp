@@ -13,6 +13,15 @@
 #define TAG "TaskFileRecv"
 #include "basedef.h"
 
+
+enum FILE_RECV_STATUS{
+	RECV_END,
+	RECV_TELL_READ_LENGTH,
+	RECV_TELL_TOTAL_LENGTH,
+	RECV_SOURCE_CLOSE
+};
+
+
 #ifdef 	__ANDROID__
 #define	FILE_PATH	"/sdcard/w.h264"
 #else
@@ -229,7 +238,7 @@ int FileRecvCallback( int sockId, int command, int fileLen ) {
 					mRecvBuffer.bProcCmmd = false;
 					hasRecvLen = 0;
 
-					GLOGE("playback flag:%08x totalLen:%d ret:%d\n", head->dwFlag, mRecvBuffer.totalLen, ret);
+					GLOGE("playback flag:%08x cmd:%d totalLen:%d ret:%d\n", head->dwFlag, head->dwCmd, mRecvBuffer.totalLen, ret);
 
 					if(head->dwLength>0) {
 						ret = recvPackData();
@@ -239,13 +248,25 @@ int FileRecvCallback( int sockId, int command, int fileLen ) {
 						switch(head->dwCmd) {
 							case MODULE_MSG_DATAEND:
 #ifdef 	__ANDROID__
-						FileRecvCallback(mSid.mKey, 0, 0);
+						FileRecvCallback(mSid.mKey, RECV_END, 0);
 #endif
 								GLOGW("MODULE_MSG_DATAEND\n");
+								break;
+							case MODULE_MSG_SECTION_END:
+//								char lpData[2048];
+//								int nLength = sprintf(lpData, "<control name=\"start\" tmstart=\"10485760\" tmend=\"20485760\" />");
+//								if(SendCmd(MODULE_MSG_CONTROL_PLAY, 0, lpData, nLength)<0)
+//									GLOGE("send CMD err!");
 								break;
 						}
 					}
 				}//==
+			}//else return 0
+			else
+			{
+#ifdef 	__ANDROID__
+						FileRecvCallback(mSid.mKey, RECV_SOURCE_CLOSE, 0);
+#endif
 			}
 		}//bProcCmmd
 		else{
@@ -282,7 +303,7 @@ int FileRecvCallback( int sockId, int command, int fileLen ) {
 						fflush(mwFile);
 						GLOGW("frame len:%d\n", lpFrame->nLength);
 #ifdef 	__ANDROID__
-						FileRecvCallback(mSid.mKey, 1, lpFrame->nLength);
+						FileRecvCallback(mSid.mKey, RECV_TELL_READ_LENGTH, lpFrame->nLength);
 #endif
 						break;
 
@@ -298,7 +319,7 @@ int FileRecvCallback( int sockId, int command, int fileLen ) {
 						SendCmd(MODULE_MSG_CONTROL_PLAY, 0, szCmd,len + 1);
 
 #ifdef 	__ANDROID__
-						FileRecvCallback(mSid.mKey, 2, mTotalLen);
+						FileRecvCallback(mSid.mKey, RECV_TELL_TOTAL_LENGTH, mTotalLen);
 #endif
 						break;
 				}
